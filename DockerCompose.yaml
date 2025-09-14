@@ -1,0 +1,10 @@
+version: 
+services:
+  web:
+    build:
+    ports:
+    depends_on:
+  db:
+    image:
+    environment:
+    volumes:
