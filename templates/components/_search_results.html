@@ -1,0 +1,35 @@
+{% if patients %}
+    <ul class="divide-y divide-gray-200">
+        {% for patient in patients %}
+        <li class="py-3 px-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer"
+            hx-get="{{ url_for('open_patient_tab', patient_id=patient.id) }}"
+            hx-target="#patient-tab-content-area"
+            hx-swap="beforeend"
+            hx-on--after-request="
+                const tabHeaders = document.getElementById('patient-tab-headers');
+                const newTabHeader = document.createElement('button');
+                newTabHeader.id = 'tab-header-{{ patient.id }}';
+                newTabHeader.classList.add('px-4', 'py-2', 'text-sm', 'font-medium', 'border-t', 'border-r', 'border-l', 'rounded-t-md', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:outline-none', 'focus:z-10', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-500');
+                newTabHeader.textContent = '{{ patient.name }}';
+                newTabHeader.onclick = function() {
+                    document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                    document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
+                    document.querySelectorAll('#patient-tab-headers > button').forEach(btn => btn.classList.remove('bg-white', 'border-b-0'));
+                    this.classList.add('bg-white', 'border-b-0');
+                };
+                tabHeaders.appendChild(newTabHeader);
+                // Hide other tab contents and activate the new one
+                document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
+                document.querySelectorAll('#patient-tab-headers > button').forEach(btn => btn.classList.remove('bg-white', 'border-b-0'));
+                newTabHeader.classList.add('bg-white', 'border-b-0');
+            "
+        >
+            <span>{{ patient.name }} (ID: {{ patient.id }})</span>
+            <span class="text-sm text-gray-500">{{ patient.location }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="text-gray-500">No patients found. Try broadening your search or registering a new patient.</p>
+{% endif %}

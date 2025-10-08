@@ -1,0 +1,43 @@
+<div class="p-6 bg-white rounded-lg shadow-md max-w-lg mx-auto">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Register New Patient</h2>
+    <form hx-post="{{ url_for('register_patient') }}" hx-target="#dynamic-content" hx-swap="innerHTML" class="space-y-4">
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700">Name:</label>
+            <input type="text" id="name" name="name" required
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+            <label for="location" class="block text-sm font-medium text-gray-700">Location:</label>
+            <input type="text" id="location" name="location" required
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+            <label for="approved_visitors" class="block text-sm font-medium text-gray-700">Approved Visitors:</label>
+            <input type="text" id="approved_visitors" name="approved_visitors"
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+            <label for="identity" class="block text-sm font-medium text-gray-700">Identity:</label>
+            <input type="text" id="identity" name="identity" required
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+            <label for="insurance" class="block text-sm font-medium text-gray-700">Insurance:</label>
+            <input type="text" id="insurance" name="insurance"
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+            <label for="billing" class="block text-sm font-medium text-gray-700">Billing:</label>
+            <input type="text" id="billing" name="billing"
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div class="flex items-center">
+            <input type="checkbox" id="restricted_visitation" name="restricted_visitation"
+                   class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+            <label for="restricted_visitation" class="ml-2 block text-sm text-gray-900">Restricted Visitation</label>
+        </div>
+        <button type="submit" class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition duration-200 ease-in-out font-semibold">
+            Register Patient
+        </button>
+    </form>
+</div>

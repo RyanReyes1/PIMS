@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IASO Hospital Management</title>
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+    <script>
+        // Global HTMX configuration or custom JS
+        document.addEventListener('htmx:afterSwap', function(event) {
+            // Example: If a tab is added, scroll it into view
+            if (event.detail.target.id && event.detail.target.id.startsWith('patient-tab-')) {
+                event.detail.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+
+        // Function to close filter dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const filterDropdown = document.getElementById('filter-options-dropdown');
+            const filterButton = document.getElementById('filter-button');
+            if (filterDropdown && !filterDropdown.contains(event.target) && !filterButton.contains(event.target)) {
+                filterDropdown.innerHTML = ''; // Clear the dropdown content
+            }
+        });
+    </script>
+</head>
+<body class="font-sans antialiased bg-gray-100">
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,30 @@
+<div class="p-6 bg-white rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Search Patient Records</h2>
+    <div class="flex items-center space-x-4 mb-4">
+        <input type="text" id="search-name" name="name" placeholder="Search by Name..."
+               class="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+               hx-get="{{ url_for('search_patients') }}"
+               hx-target="#search-results"
+               hx-trigger="keyup changed delay:500ms"
+               hx-vals="js:{name: document.getElementById('search-name').value, location: document.getElementById('search-location').value, restricted_visitation: document.getElementById('filter-restricted-visitation')?.checked, full_chart: document.getElementById('filter-full-chart')?.checked}"
+               >
+        <button id="filter-button"
+                class="px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition duration-200 ease-in-out relative"
+                hx-get="{{ url_for('filter_options') }}"
+                hx-target="#filter-options-dropdown"
+                hx-swap="innerHTML"
+                onclick="event.stopPropagation();" {# Prevent filter list from closing immediately #}
+        >
+            Filter
+        </button>
+    </div>
+    <div id="filter-options-dropdown" class="absolute z-30 bg-white border border-gray-200 rounded-md shadow-lg p-4 mt-2"
+         hx-on="click:event.stopPropagation();" {# Keep dropdown open on clicks inside #}>
+        <!-- Filter options will be loaded here by HTMX -->
+    </div>
+
+    <div id="search-results" class="mt-6 border-t border-gray-200 pt-4">
+        <h3 class="text-xl font-semibold text-gray-700 mb-3">Search Results:</h3>
+        <p class="text-gray-500">Start typing to see patient results.</p>
+    </div>
+</div>
