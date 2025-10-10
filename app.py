@@ -141,6 +141,14 @@ def export_csv(patient_id):
     # In a real app, generate and return a CSV
     return f"<div class='p-4 text-indigo-700 bg-indigo-100 rounded'>Exporting CSV for Patient ID: {patient_id}...</div>"
 
+# ... (existing imports and code) ...
+
+@app.route('/clear_dynamic_content', methods=['GET'])
+def clear_dynamic_content():
+    """Returns an empty div to clear the dynamic content area."""
+    return "<div class='p-4 text-gray-500 bg-gray-50 rounded'>Content cleared. Use the sidebar to continue.</div>"
+
+# ... (rest of your app.py) ...
 
 if __name__ == '__main__':
     app.run(debug=True)

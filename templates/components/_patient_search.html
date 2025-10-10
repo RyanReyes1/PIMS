@@ -17,6 +17,15 @@
         >
             Filter
         </button>
+        <button
+            class="px-5 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out"
+            hx-get="{{ url_for('clear_dynamic_content') }}"
+            hx-target="#dynamic-content"
+            hx-swap="innerHTML"
+            aria-label="Cancel patient search and clear form"
+        >
+            Cancel
+        </button>
     </div>
     <div id="filter-options-dropdown" class="absolute z-30 bg-white border border-gray-200 rounded-md shadow-lg p-4 mt-2"
          hx-on="click:event.stopPropagation();" {# Keep dropdown open on clicks inside #}>

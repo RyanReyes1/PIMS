@@ -36,8 +36,19 @@
                    class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
             <label for="restricted_visitation" class="ml-2 block text-sm text-gray-900">Restricted Visitation</label>
         </div>
+        <div class="flex justify-end space-x-3 mt-6">
+        <button type="button"
+                    class="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out font-semibold"
+                    hx-get="{{ url_for('clear_dynamic_content') }}"
+                    hx-target="#dynamic-content"
+                    hx-swap="innerHTML"
+                    aria-label="Cancel patient registration and clear form"
+            >
+                Cancel
+            </button>
         <button type="submit" class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition duration-200 ease-in-out font-semibold">
             Register Patient
         </button>
+        </div>
     </form>
 </div>
