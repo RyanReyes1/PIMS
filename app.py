@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
+from markupsafe import Markup #if using an older version of Flask, use above line for Markup
 from config import Config
 
 app = Flask(__name__)
@@ -8,6 +9,21 @@ app.config.from_object(Config)
 # For demonstration, we'll use a simple in-memory dictionary for patients
 patients_db = {}
 patient_id_counter = 0
+
+# Initial dummy data for demonstration
+patients_db[1] = {
+    'id': 1,
+    'name': 'Alice Smith',
+    'location': 'Ward A, Room 101',
+    'approved_visitors': 'John Smith, Jane Doe',
+    'identity': 'AB123456C',
+    'insurance': 'BlueCross BlueShield',
+    'billing': 'Current',
+    'restricted_visitation': False,
+    'full_chart': True
+}
+patient_id_counter = 1
+
 
 @app.route('/')
 def index():
@@ -61,8 +77,9 @@ def register_patient():
     global patient_id_counter
     global patients_db
     patient_id_counter += 1
+    new_patient_id = patient_id_counter # Get the ID before creating the patient object
     new_patient = {
-        'id': patient_id_counter,
+        'id': new_patient_id,
         'name': request.form['name'],
         'location': request.form['location'],
         'approved_visitors': request.form['approved_visitors'],
@@ -72,10 +89,55 @@ def register_patient():
         'restricted_visitation': 'restricted_visitation' in request.form,
         'full_chart': False # Default for new patients
     }
-    patients_db[new_patient['id']] = new_patient
+    patients_db[new_patient_id] = new_patient
+
+    # Generate the HTML for the new patient tab header (OOB swap)
+    tab_header_html = render_template('components/_new_patient_tab_header.html', patient=new_patient)
+
+    # Generate the HTML for the new patient tab content (OOB swap)
+    tab_content_html = render_template('components/_patient_tab.html', patient=new_patient)
+
+    # Construct the response with OOB swaps
+    # The primary swap will be the success message for #dynamic-content
+    # The OOB swaps will add the tab header and tab content to their respective containers.
+    response_html = Markup(f"""
+        <div class='p-4 text-green-700 bg-green-100 rounded'>Patient '{new_patient['name']}' registered successfully!</div>
+
+        <div hx-swap-oob="beforeend:#patient-tab-headers" id="oob-header-{new_patient_id}">
+            {tab_header_html}
+        </div>
+        <div hx-swap-oob="beforeend:#patient-tab-content-area" id="oob-content-{new_patient_id}">
+            {tab_content_html}
+        </div>
+        <script>
+            // HTMX will automatically swap the OOB content first.
+            // After the OOB swaps, we activate the new tab.
+            // This script runs after the entire HTMX response is processed.
+            htmx.onLoad(function() {{
+                const newTabHeader = document.getElementById('tab-header-{new_patient_id}');
+                const newTabContent = document.getElementById('patient-tab-{new_patient_id}');
+                if (newTabHeader && newTabContent) {{
+                    // Deactivate all existing tabs
+                    document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                    document.querySelectorAll('#patient-tab-headers > button').forEach(btn => btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100'));
+                    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+
+
+                    // Activate the newly created tab
+                    newTabContent.classList.remove('hidden');
+                    newTabHeader.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                    newTabHeader.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+
+                    newTabHeader.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+                }}
+            }});
+        </script>
+    """)
+    return response_html
+
     # After registration, you might want to open a tab for the new patient
     # For now, let's just clear the form or show a success message
-    return "<div class='p-4 text-green-700 bg-green-100 rounded'>Patient registered successfully!</div>"
+    #return "<div class='p-4 text-green-700 bg-green-100 rounded'>Patient registered successfully!</div>"
 
 
 @app.route('/request_emergency_access', methods=['GET'])
