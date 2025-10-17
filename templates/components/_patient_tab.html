@@ -15,6 +15,15 @@
                     hx-swap="beforeend">
                 Export CSV
             </button>
+            <button
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition duration-200 ease-in-out"
+                hx-get="{{ url_for('request_emergency_access_form') }}"
+                hx-target="#dynamic-content"
+                hx-swap="innerHTML"
+                aria-label="Request emergency access for {{ patient.name }}"
+            >
+                Emergency Access
+            </button>
         </div>
     </div>
 
