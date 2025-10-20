@@ -1,5 +1,23 @@
+<!--
+Parent: 
+Children: _patient_data_section.html
+
+Template for patient information
+Contains buttons for printing PDF/CSV reports, requesting emergency access, and the display template for individual patient data fields
+This form is displayed when the user clicks the patient's tab header, and stays open until they move to another tab.
+User can print a PDF/CSV report containing patient information, request emergency access for more patient data, and view patient information and edit them individually
+
+Components: 
+*Buttons: (I couln't think of a better name) Contains the buttons for printing PDF/CSV documents, and for calling the emergency access form
+*Fields: Grided template design for patient data field display
+
+Notes: 
+*To do: Rework the look of Fields
+*This field should stay open once the user clicks any other button on the page
+-->
 <div id="patient-tab-{{ patient.id }}" class="patient-tab-content p-6 space-y-6 hidden"
      role="tabpanel" aria-labelledby="tab-header-{{ patient.id }}">
+     <!--Buttons-->
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-2xl font-bold text-gray-800">Patient: {{ patient.name }}</h3>
         <div class="space-x-2">
@@ -27,6 +45,7 @@
         </div>
     </div>
 
+    <!--Fields-->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% set field_name = 'name' %}
         {% set label = 'Name' %}

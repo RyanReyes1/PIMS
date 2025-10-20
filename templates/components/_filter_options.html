@@ -1,5 +1,22 @@
+<!--
+Parent: _patient_search.html
+Children: None
+
+Filter options menu display
+Appears when the user clicks the filter button on the patient search form
+User enters the data they wish to filter for, and apply to their current search
+
+Components:
+*Filter Options: Fields for the user to enter or select to what patient information they wish to request; restricted visitation and full chart are checkboxes, the rest are textboxes
+*Cancel button: When clicked, cancels the current filter options and closes the filter options menu display
+*Apply filter button: Applies the currently selected filter options to the current search
+
+Notes:
+*If the search is done dynamically (i.e. possible matches are shown as the user is typing), then apply filter is unnecessary
+-->
 <div class="w-64 space-y-3">
     <h4 class="font-bold text-gray-800">Filter Options</h4>
+    <!--Filter Options-->
     <div>
         <label for="search-location" class="block text-sm font-medium text-gray-700">Location:</label>
         <input type="text" id="search-location" name="location"
@@ -45,12 +62,14 @@
     </button>-->
 
     <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+        <!--Cancel button-->
         <button type="button"
                 class="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-md text-sm"
                 onclick="document.getElementById('filter-options-dropdown').innerHTML = '';" {# Clear dropdown on cancel #}
                 aria-label="Cancel filter selection">
             Cancel
         </button>
+        <!--Apply filter button-->
         <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm"
                 hx-get="{{ url_for('search_patients') }}"
                 hx-target="#search-results"

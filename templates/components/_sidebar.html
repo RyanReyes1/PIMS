@@ -1,5 +1,24 @@
+<!--
+Parent: layout.html
+Children: None
+
+Dashboard Sidebar
+Contains buttons to call the patient search and registration forms
+The forms are loaded into the "dynamic content" section of the page
+
+Components:
+*Request Patient Records button: When clicked, opens the patient search form
+*Register New Patient button: When clicked, opens the patient registration form
+
+Notes:
+*The emergency access button was moved from the sidebar to the individual patient tabs to allow quicker and more logical access for healtcare providers
+ The button hasn't been deleted because I think there may be a reason to need emergency access a patient's ePHI while the patient's records haven't been delivered
+ For example: Healthcare provider's need to immediately access a patient's ePHI and don't have time to request records
+ Discussion is needed
+-->
 <aside class="fixed top-0 left-0 z-10 w-64 h-screen bg-blue-900 text-white p-4 pt-20 shadow-lg flex flex-col">
     <nav class="space-y-4 flex-1">
+        <!--Request Patient Records button-->
         <button
             class="w-full text-left px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-md transition duration-200 ease-in-out text-lg font-semibold"
             hx-get="{{ url_for('request_patient_records') }}"
@@ -8,6 +27,7 @@
         >
             Request Patient Records
         </button>
+        <!--Register New Patient button-->
         <button
             class="w-full text-left px-4 py-3 bg-green-600 hover:bg-green-700 rounded-md transition duration-200 ease-in-out text-lg font-semibold"
             hx-get="{{ url_for('register_new_patient_form') }}"

@@ -1,6 +1,20 @@
+<!--
+Parent: _sidebar.html
+Children: None
+
+Patient registration form
+Contains input fields for the entire patient information dataset
+User inputs relevant information into each field, then submits, or cancels and dismisses form
+
+Components: 
+*Input fields for each piece of patient information; restricted access is a checkbox, everything else is a textbox
+*Cancel button: Clears the form from the page
+*Submit button: Submit patient information and register them; patient is added to database and a tab for them is opened in patient tab area
+-->
 <div class="p-6 bg-white rounded-lg shadow-md max-w-lg mx-auto">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">Register New Patient</h2>
     <form hx-post="{{ url_for('register_patient') }}" hx-target="#dynamic-content" hx-swap="innerHTML" class="space-y-4">
+        <!--Input Fields-->
         <div>
             <label for="name" class="block text-sm font-medium text-gray-700">Name:</label>
             <input type="text" id="name" name="name" required
@@ -37,6 +51,7 @@
             <label for="restricted_visitation" class="ml-2 block text-sm text-gray-900">Restricted Visitation</label>
         </div>
         <div class="flex justify-end space-x-3 mt-6">
+            <!--Cancel button-->
         <button type="button"
                     class="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out font-semibold"
                     hx-get="{{ url_for('clear_dynamic_content') }}"
@@ -46,6 +61,7 @@
             >
                 Cancel
             </button>
+        <!--Submit button-->
         <button type="submit" class="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition duration-200 ease-in-out font-semibold">
             Register Patient
         </button>

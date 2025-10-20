@@ -1,3 +1,14 @@
+<!--
+Parent: _patient_tab.html
+Children: _edit_field.html
+
+Template for individual fields in the patient information tab
+Each data field in a patient information form uses this template
+Includes an edit button to edit patient data
+
+Components:
+*Edit button: Calls the edit field form to edit patient information
+-->
 <div id="patient-{{ patient_id }}-{{ field_name }}-display" class="bg-gray-100 p-4 rounded-lg shadow-sm flex justify-between items-center">
     <div>
         <h4 class="text-sm font-medium text-gray-500">{{ label }}:</h4>

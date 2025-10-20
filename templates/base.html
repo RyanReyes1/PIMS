@@ -1,3 +1,13 @@
+<!--
+Parent: None
+Children: Layout
+
+Head of the HTML document
+
+Components:
+*HTMX swap event listener: Scrolls to the section of the page where an HTMX swap occured to allow the user to immediately view the result of their actions
+*Filter close event listener: Closes the filter options dropdown menu when the user clicks outside its boundries (I don't think this works)
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,7 +25,7 @@
             }
         });
 
-        // Function to close filter dropdown when clicking outside
+        // Function to close filter dropdown when clicking outside (Is this still needed? Should the cancel button on the filter be deleted?)
         document.addEventListener('click', function(event) {
             const filterDropdown = document.getElementById('filter-options-dropdown');
             const filterButton = document.getElementById('filter-button');
