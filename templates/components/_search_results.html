@@ -25,29 +25,27 @@ Preface: My understanding of this code is not good. I am leaving this in place t
             hx-target="#patient-tab-content-area"
             hx-swap="beforeend"
             hx-on--after-request="
-                const newTabHeader = document.createElement('button');
-                newTabHeader.id = 'tab-header-{{ patient.id }}';
-                newTabHeader.classList.add('px-4', 'py-2', 'text-sm', 'font-medium', 'border-t', 'border-r', 'border-l', 'rounded-t-md', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:outline-none', 'focus:z-10', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-500');
-                newTabHeader.textContent = '{{ patient.name }}';
-                newTabHeader.setAttribute('aria-controls', 'patient-tab-{{ patient.id }}');
-                newTabHeader.setAttribute('role', 'tab');
-                newTabHeader.onclick = function() {
-                    document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
-                    document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
-                    document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
-                        btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
-                        btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                    });
-                    this.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
-                    this.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                };
-
                 const tabHeadersContainer = document.getElementById('patient-tab-headers');
-                // Check if tab header already exists before appending
-                if (!document.getElementById('tab-header-{{ patient.id }}')) {
-                    tabHeadersContainer.appendChild(newTabHeader);
-                } else {
-                    // If it exists, just update its click handler if necessary (though not strictly needed if always consistent)
+                let existingTabHeader = document.getElementById('tab-header-{{ patient.id }}');
+
+                if (!existingTabHeader) {
+                    existingTabHeader = document.createElement('button');
+                    existingTabHeader.id = 'tab-header-{{ patient.id }}';
+                    existingTabHeader.classList.add('px-4', 'py-2', 'text-sm', 'font-medium', 'border-t', 'border-r', 'border-l', 'rounded-t-md', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:outline-none', 'focus:z-10', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-500');
+                    existingTabHeader.textContent = '{{ patient.name }}';
+                    existingTabHeader.setAttribute('aria-controls', 'patient-tab-{{ patient.id }}');
+                    existingTabHeader.setAttribute('role', 'tab');
+                    existingTabHeader.onclick = function() {
+                        document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                        document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
+                        document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
+                            btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                            btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                        });
+                        this.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                        this.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    };
+                    tabHeadersContainer.appendChild(existingTabHeader);
                 }
 
                 // Deactivate all existing tabs
@@ -60,10 +58,10 @@ Preface: My understanding of this code is not good. I am leaving this in place t
 
                 // Activate the newly created tab (or existing one if already open)
                 document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
-                document.getElementById('tab-header-{{ patient.id }}').classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
-                document.getElementById('tab-header-{{ patient.id }}').classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                existingTabHeader.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                existingTabHeader.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
 
-                document.getElementById('tab-header-{{ patient.id }}').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                existingTabHeader.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             "
         >
             <span>{{ patient.name }} (ID: {{ patient.id }})</span>

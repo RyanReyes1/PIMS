@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from markupsafe import Markup #if using an older version of Flask, use above line for Markup
 from config import Config
 
@@ -24,15 +24,42 @@ patients_db[1] = {
 }
 patient_id_counter = 1
 
+# --- RBAC Configuration ---
+ROLES = ['Physician', 'Medical Personnel', 'Office Staff', 'Volunteer']
+
+# Permission Matrix: Maps role to a list of fields they can see
+PERMISSION_MATRIX = {
+    'Physician': ['name', 'location', 'approved_visitors', 'identity', 'insurance', 'billing', 'restricted_visitation', 'full_chart'],
+    'Medical Personnel': ['name', 'location', 'approved_visitors', 'identity', 'insurance', 'billing', 'restricted_visitation', 'full_chart'],
+    'Office Staff': ['identity', 'insurance', 'billing'],
+    'Volunteer': ['name', 'location', 'approved_visitors', 'restricted_visitation']
+}
+
+# Add a function to check if the current user has access to a field
+def can_access_field(field_name):
+    current_role = session.get('user_role', 'Physician') # Default to Physician if not set
+    return field_name in PERMISSION_MATRIX.get(current_role, [])
+
+# Make can_access_field available in Jinja2 templates
+app.jinja_env.globals.update(can_access_field=can_access_field)
+# --- End RBAC Configuration ---
+
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    if 'user_role' not in session:
+        session['user_role'] = 'Physician' # Set default role on first load
+    return render_template('index.html', roles=ROLES, current_role=session['user_role'])
 
 @app.route('/logout')
 def logout():
-    # In a real app, this would clear session, etc.
+    session.pop('user_role', None) # Clear role on logout
     return redirect(url_for('index'))
+
+@app.route('/clear_dynamic_content', methods=['GET'])
+def clear_dynamic_content():
+    """Returns an empty div to clear the dynamic content area."""
+    return "<div class='p-4 text-gray-500 bg-gray-50 rounded'>Content cleared. Use the sidebar to continue.</div>"
 
 # HTMX Endpoints for Sidebar Actions
 
@@ -73,11 +100,12 @@ def register_new_patient_form():
 
 @app.route('/register_patient', methods=['POST'])
 def register_patient():
-    """Handles new patient registration."""
+    """Handles new patient registration and opens a new patient tab via OOB swap."""
     global patient_id_counter
     global patients_db
     patient_id_counter += 1
-    new_patient_id = patient_id_counter # Get the ID before creating the patient object
+    new_patient_id = patient_id_counter
+
     new_patient = {
         'id': new_patient_id,
         'name': request.form['name'],
@@ -95,11 +123,9 @@ def register_patient():
     tab_header_html = render_template('components/_new_patient_tab_header.html', patient=new_patient)
 
     # Generate the HTML for the new patient tab content (OOB swap)
+    # The _patient_tab.html rendering will now use the current session role to filter fields
     tab_content_html = render_template('components/_patient_tab.html', patient=new_patient)
 
-    # Construct the response with OOB swaps
-    # The primary swap will be the success message for #dynamic-content
-    # The OOB swaps will add the tab header and tab content to their respective containers.
     response_html = Markup(f"""
         <div class='p-4 text-green-700 bg-green-100 rounded'>Patient '{new_patient['name']}' registered successfully!</div>
 
@@ -110,20 +136,16 @@ def register_patient():
             {tab_content_html}
         </div>
         <script>
-            // HTMX will automatically swap the OOB content first.
-            // After the OOB swaps, we activate the new tab.
-            // This script runs after the entire HTMX response is processed.
             htmx.onLoad(function() {{
                 const newTabHeader = document.getElementById('tab-header-{new_patient_id}');
                 const newTabContent = document.getElementById('patient-tab-{new_patient_id}');
                 if (newTabHeader && newTabContent) {{
-                    // Deactivate all existing tabs
                     document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
-                    document.querySelectorAll('#patient-tab-headers > button').forEach(btn => btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100'));
-                    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {{
+                        btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                        btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    }});
 
-
-                    // Activate the newly created tab
                     newTabContent.classList.remove('hidden');
                     newTabHeader.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
                     newTabHeader.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
@@ -135,10 +157,6 @@ def register_patient():
     """)
     return response_html
 
-    # After registration, you might want to open a tab for the new patient
-    # For now, let's just clear the form or show a success message
-    #return "<div class='p-4 text-green-700 bg-green-100 rounded'>Patient registered successfully!</div>"
-
 
 @app.route('/request_emergency_access', methods=['GET'])
 def request_emergency_access_form():
@@ -149,7 +167,6 @@ def request_emergency_access_form():
 def submit_emergency_access():
     """Handles emergency access submission."""
     reason = request.form['reason']
-    # In a real app, this would trigger an alert or a workflow
     return f"<div class='p-4 text-orange-700 bg-orange-100 rounded'>Emergency access request submitted for reason: {reason}</div>"
 
 
@@ -160,12 +177,17 @@ def open_patient_tab(patient_id):
     """Opens a new tab for a patient."""
     patient = patients_db.get(patient_id)
     if patient:
+        # The _patient_tab.html rendering will now use the current session role to filter fields
         return render_template('components/_patient_tab.html', patient=patient)
     return "<div class='text-red-500 p-4'>Patient not found.</div>"
 
 @app.route('/edit_patient_section/<int:patient_id>/<string:field_name>', methods=['GET'])
 def edit_patient_section(patient_id, field_name):
     """Renders an editable input for a specific patient field."""
+    # Check permission for editing as well
+    if not can_access_field(field_name):
+        return "<div class='text-red-500 p-4'>Access denied to edit this field.</div>"
+
     patient = patients_db.get(patient_id)
     if patient and field_name in patient:
         current_value = patient[field_name]
@@ -176,10 +198,13 @@ def edit_patient_section(patient_id, field_name):
 @app.route('/update_patient_section/<int:patient_id>/<string:field_name>', methods=['POST'])
 def update_patient_section(patient_id, field_name):
     """Updates a patient field and re-renders the static display."""
+    # Check permission for updating
+    if not can_access_field(field_name):
+        return "<div class='text-red-500 p-4'>Access denied to update this field.</div>"
+
     patient = patients_db.get(patient_id)
     if patient and field_name in patient:
         new_value = request.form[f'edit-{field_name}']
-        # Handle boolean fields
         if field_name in ['restricted_visitation', 'full_chart']:
             patient[field_name] = (new_value == 'on')
         else:
@@ -203,14 +228,30 @@ def export_csv(patient_id):
     # In a real app, generate and return a CSV
     return f"<div class='p-4 text-indigo-700 bg-indigo-100 rounded'>Exporting CSV for Patient ID: {patient_id}...</div>"
 
-# ... (existing imports and code) ...
 
-@app.route('/clear_dynamic_content', methods=['GET'])
-def clear_dynamic_content():
-    """Returns an empty div to clear the dynamic content area."""
-    return "<div class='p-4 text-gray-500 bg-gray-50 rounded'>Content cleared. Use the sidebar to continue.</div>"
+# --- RBAC Role Switching Endpoint ---
+@app.route('/set_user_role', methods=['POST'])
+def set_user_role():
+    new_role = request.form.get('role')
+    if new_role in ROLES:
+        session['user_role'] = new_role
+        # Return a snippet that potentially triggers a client-side refresh or just confirms
+        return Markup(f"""
+            <span class='text-sm text-gray-600 ml-2'>Role updated to: {new_role}</span>
+            <script>
+                // Trigger re-render of all open tabs
+                const openTabIds = Array.from(document.querySelectorAll('#patient-tab-headers > button'))
+                                      .map(btn => btn.id.replace('tab-header-', ''));
+                openTabIds.forEach(id => {{
+                    const patientTabContent = document.getElementById('patient-tab-' + id);
+                    if (patientTabContent) {{
+                        htmx.trigger(patientTabContent, 'refreshContent');
+                    }}
+                }});
+            </script>
+        """)
+    return "<span class='text-sm text-red-500 ml-2'>Invalid role selected.</span>"
 
-# ... (rest of your app.py) ...
 
 if __name__ == '__main__':
     app.run(debug=True)
