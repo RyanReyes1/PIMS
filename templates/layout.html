@@ -23,29 +23,6 @@ Components:
 
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col pt-16 ml-64 bg-white shadow-lg overflow-hidden">
-        <div class="p-6 bg-gray-50 border-b border-gray-200"> {# Role Switcher Area #}
-            <h3 class="text-lg font-semibold text-gray-800 mb-2">Select User Role:</h3>
-            <div id="role-switcher" class="flex flex-wrap gap-3">
-                {% for role in roles %}
-                <label class="inline-flex items-center">
-                    <input type="radio" name="role" value="{{ role }}"
-                           class="form-radio h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
-                           {% if role == current_role %}checked{% endif %}
-                           hx-post="{{ url_for('set_user_role') }}"
-                           hx-target="#role-status"
-                           hx-swap="innerHTML"
-                           hx-trigger="change"
-                           aria-label="Switch role to {{ role }}"
-                    >
-                    <span class="ml-2 text-gray-700">{{ role }}</span>
-                </label>
-                {% endfor %}
-                <span id="role-status" class="ml-4 text-sm text-gray-600">
-                    Role: {{ current_role }}
-                </span>
-            </div>
-        </div>
-
         <div id="dashboard-main-content" class="flex-1 overflow-auto p-6">
             <!-- Initial content or message -->
             <h1 class="text-3xl font-bold text-gray-800 mb-6">Welcome to the Dashboard</h1>

@@ -1,5 +1,5 @@
 <!--
-Parent: _patient_tab.html
+Parent: Role-specific patient tab templates (_patient_tab_[role].html)
 Children: _edit_field.html
 
 Template for individual fields in the patient information tab
@@ -18,14 +18,11 @@ Components:
             <span class="text-lg font-semibold text-gray-800">{{ value if value else 'N/A' }}</span>
         {% endif %}
     </div>
-    {# Only show edit button if the field is accessible #}
-    {% if can_access_field(field_name) %}
-        <button class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded-md"
-                hx-get="{{ url_for('edit_patient_section', patient_id=patient_id, field_name=field_name) }}"
-                hx-target="#patient-{{ patient_id }}-{{ field_name }}-display"
-                hx-swap="outerHTML"
-                aria-label="Edit {{ label }}">
-            Edit
-        </button>
-    {% endif %}
+    <button class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded-md"
+            hx-get="{{ url_for('edit_patient_section', patient_id=patient_id, field_name=field_name) }}"
+            hx-target="#patient-{{ patient_id }}-{{ field_name }}-display"
+            hx-swap="outerHTML"
+            aria-label="Edit {{ label }}">
+        Edit
+    </button>
 </div>

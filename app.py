@@ -34,21 +34,13 @@ PERMISSION_MATRIX = {
     'Office Staff': ['identity', 'insurance', 'billing'],
     'Volunteer': ['name', 'location', 'approved_visitors', 'restricted_visitation']
 }
-
-# Add a function to check if the current user has access to a field
-def can_access_field(field_name):
-    current_role = session.get('user_role', 'Physician') # Default to Physician if not set
-    return field_name in PERMISSION_MATRIX.get(current_role, [])
-
-# Make can_access_field available in Jinja2 templates
-app.jinja_env.globals.update(can_access_field=can_access_field)
 # --- End RBAC Configuration ---
 
 
 @app.route('/')
 def index():
     if 'user_role' not in session:
-        session['user_role'] = 'Physician' # Set default role on first load
+        session['user_role'] = 'Office Staff' # Set default role on first load
     return render_template('index.html', roles=ROLES, current_role=session['user_role'])
 
 @app.route('/logout')
@@ -119,12 +111,15 @@ def register_patient():
     }
     patients_db[new_patient_id] = new_patient
 
+    # Get current role and determine the correct template
+    current_role = session.get('user_role', 'Physician').lower().replace(' ', '')
+    template_name = f'components/_patient_tab_{current_role}.html'
+
     # Generate the HTML for the new patient tab header (OOB swap)
     tab_header_html = render_template('components/_new_patient_tab_header.html', patient=new_patient)
 
-    # Generate the HTML for the new patient tab content (OOB swap)
-    # The _patient_tab.html rendering will now use the current session role to filter fields
-    tab_content_html = render_template('components/_patient_tab.html', patient=new_patient)
+    # Generate the HTML for the new patient tab content using role-specific template
+    tab_content_html = render_template(template_name, patient=new_patient)
 
     response_html = Markup(f"""
         <div class='p-4 text-green-700 bg-green-100 rounded'>Patient '{new_patient['name']}' registered successfully!</div>
@@ -174,18 +169,20 @@ def submit_emergency_access():
 
 @app.route('/open_patient_tab/<int:patient_id>', methods=['GET'])
 def open_patient_tab(patient_id):
-    """Opens a new tab for a patient."""
+    """Opens a new tab for a patient based on the user's role."""
     patient = patients_db.get(patient_id)
-    if patient:
-        # The _patient_tab.html rendering will now use the current session role to filter fields
-        return render_template('components/_patient_tab.html', patient=patient)
-    return "<div class='text-red-500 p-4'>Patient not found.</div>"
+    if not patient:
+        return "<div class='text-red-500 p-4'>Patient not found.</div>"
+
+    current_role = session.get('user_role', 'Physician').lower().replace(' ', '')
+    template_name = f'components/_patient_tab_{current_role}.html'
+    return render_template(template_name, patient=patient)
 
 @app.route('/edit_patient_section/<int:patient_id>/<string:field_name>', methods=['GET'])
 def edit_patient_section(patient_id, field_name):
     """Renders an editable input for a specific patient field."""
-    # Check permission for editing as well
-    if not can_access_field(field_name):
+    current_role = session.get('user_role', 'Physician')
+    if field_name not in PERMISSION_MATRIX.get(current_role, []):
         return "<div class='text-red-500 p-4'>Access denied to edit this field.</div>"
 
     patient = patients_db.get(patient_id)
@@ -198,8 +195,8 @@ def edit_patient_section(patient_id, field_name):
 @app.route('/update_patient_section/<int:patient_id>/<string:field_name>', methods=['POST'])
 def update_patient_section(patient_id, field_name):
     """Updates a patient field and re-renders the static display."""
-    # Check permission for updating
-    if not can_access_field(field_name):
+    current_role = session.get('user_role', 'Physician')
+    if field_name not in PERMISSION_MATRIX.get(current_role, []):
         return "<div class='text-red-500 p-4'>Access denied to update this field.</div>"
 
     patient = patients_db.get(patient_id)
@@ -230,27 +227,7 @@ def export_csv(patient_id):
 
 
 # --- RBAC Role Switching Endpoint ---
-@app.route('/set_user_role', methods=['POST'])
-def set_user_role():
-    new_role = request.form.get('role')
-    if new_role in ROLES:
-        session['user_role'] = new_role
-        # Return a snippet that potentially triggers a client-side refresh or just confirms
-        return Markup(f"""
-            <span class='text-sm text-gray-600 ml-2'>Role updated to: {new_role}</span>
-            <script>
-                // Trigger re-render of all open tabs
-                const openTabIds = Array.from(document.querySelectorAll('#patient-tab-headers > button'))
-                                      .map(btn => btn.id.replace('tab-header-', ''));
-                openTabIds.forEach(id => {{
-                    const patientTabContent = document.getElementById('patient-tab-' + id);
-                    if (patientTabContent) {{
-                        htmx.trigger(patientTabContent, 'refreshContent');
-                    }}
-                }});
-            </script>
-        """)
-    return "<span class='text-sm text-red-500 ml-2'>Invalid role selected.</span>"
+
 
 
 if __name__ == '__main__':
