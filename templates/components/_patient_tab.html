@@ -54,7 +54,6 @@ Notes:
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {# Conditionally render each field based on user role #}
         {% if can_access_field('name') %}
-            {% include 'components/_patient_data_section.html' with context %}
             {% set field_name = 'name' %}
             {% set label = 'Name' %}
             {% set value = patient.name %}
