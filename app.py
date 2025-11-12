@@ -40,7 +40,7 @@ PERMISSION_MATRIX = {
 @app.route('/')
 def index():
     if 'user_role' not in session:
-        session['user_role'] = 'Office Staff' # Set default role on first load
+        session['user_role'] = 'Physician' # Set default role on first load
     return render_template('index.html', roles=ROLES, current_role=session['user_role'])
 
 @app.route('/logout')

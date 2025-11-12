@@ -11,7 +11,7 @@ Components:
 *Cancel button: Clears the form from the page
 *Submit button: Submit patient information and register them; patient is added to database and a tab for them is opened in patient tab area
 -->
-<div class="p-6 bg-white rounded-lg shadow-md max-w-lg mx-auto">
+<div class="p-6 bg-white rounded-lg shadow-md border border-black max-w-lg mx-auto">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">Register New Patient</h2>
     <form hx-post="{{ url_for('register_patient') }}" hx-target="#dynamic-content" hx-swap="innerHTML" class="space-y-4">
         <!--Input Fields-->

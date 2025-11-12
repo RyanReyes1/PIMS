@@ -3,7 +3,7 @@ Parent: Layout
 Children: _patient_data_section.html
 Role: Physician - Full access to all patient data fields
 -->
-<div id="patient-tab-{{ patient.id }}" class="patient-tab-content p-6 space-y-6 hidden"
+<div id="patient-tab-{{ patient.id }}" class="patient-tab-content p-6 space-y-6 hidden border border-black rounded-lg"
      role="tabpanel" aria-labelledby="tab-header-{{ patient.id }}"
      hx-get="{{ url_for('open_patient_tab', patient_id=patient.id) }}"
      hx-target="#patient-tab-{{ patient.id }}"
