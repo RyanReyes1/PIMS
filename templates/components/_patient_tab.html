@@ -109,16 +109,10 @@ Notes:
             {% include 'components/_patient_data_section.html' %}
         {% endif %}
 
-        {% if can_access_field('full_chart') %}
-            {% set field_name = 'full_chart' %}
-            {% set label = 'Full Chart' %}
-            {% set value = patient.full_chart %}
-            {% set patient_id = patient.id %}
-            {% include 'components/_patient_data_section.html' %}
-        {% endif %}
+    {# removed deprecated field #}
 
         {# Handle case where no fields are accessible #}
-        {% if not (can_access_field('name') or can_access_field('location') or can_access_field('approved_visitors') or can_access_field('identity') or can_access_field('insurance') or can_access_field('billing') or can_access_field('restricted_visitation') or can_access_field('full_chart')) %}
+    {% if not (can_access_field('name') or can_access_field('location') or can_access_field('approved_visitors') or can_access_field('identity') or can_access_field('insurance') or can_access_field('billing') or can_access_field('restricted_visitation')) %}
             <div class="col-span-full p-4 text-center text-gray-500 bg-gray-100 rounded-md">
                 No authorized data visible for your current role.
             </div>

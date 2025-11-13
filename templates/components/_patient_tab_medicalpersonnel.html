@@ -75,9 +75,6 @@ Role: Medical Personnel - Same access as Physician
         {% set value = patient.restricted_visitation %}
         {% include 'components/_patient_data_section.html' %}
 
-        {% set field_name = 'full_chart' %}
-        {% set label = 'Full Chart' %}
-        {% set value = patient.full_chart %}
-        {% include 'components/_patient_data_section.html' %}
+    {# removed deprecated field #}
     </div>
 </div>
