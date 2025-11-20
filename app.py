@@ -58,13 +58,13 @@ def clear_dynamic_content():
 @app.route('/request_patient_records', methods=['GET'])
 def request_patient_records():
     """Returns the patient search interface."""
-    return render_template('components/_patient_search.html')
+    return render_template('components/Patient Information Management/Patient Search/_patient_search.html')
 
 @app.route('/filter_options', methods=['GET'])
 def filter_options():
     """Returns the filter options dropdown."""
     # In a real app, filters might come from a DB
-    return render_template('components/_filter_options.html')
+    return render_template('components/Patient Information Management/Patient Search/_filter_options.html')
 
 @app.route('/search_patients', methods=['GET'])
 def search_patients():
@@ -82,13 +82,13 @@ def search_patients():
            (not restricted_visitation or patient.get('restricted_visitation', False) == restricted_visitation) and \
            (not full_chart or patient.get('full_chart', False) == full_chart)
     ]
-    return render_template('components/_search_results.html', patients=results)
+    return render_template('components/Patient Information Management/Patient Search/_search_results.html', patients=results)
 
 
 @app.route('/register_new_patient', methods=['GET'])
 def register_new_patient_form():
     """Returns the patient registration form."""
-    return render_template('components/_patient_register.html')
+    return render_template('components/Patient Information Management/_patient_register.html')
 
 @app.route('/register_patient', methods=['POST'])
 def register_patient():
@@ -113,10 +113,10 @@ def register_patient():
 
     # Get current role and determine the correct template
     current_role = session.get('user_role', 'Physician').lower().replace(' ', '')
-    template_name = f'components/_patient_tab_{current_role}.html'
+    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{current_role}.html'
 
     # Generate the HTML for the new patient tab header (OOB swap)
-    tab_header_html = render_template('components/_new_patient_tab_header.html', patient=new_patient)
+    tab_header_html = render_template('components/Patient Information View/_new_patient_tab_header.html', patient=new_patient)
 
     # Generate the HTML for the new patient tab content using role-specific template
     tab_content_html = render_template(template_name, patient=new_patient)
@@ -156,7 +156,7 @@ def register_patient():
 @app.route('/request_emergency_access', methods=['GET'])
 def request_emergency_access_form():
     """Returns the emergency access form."""
-    return render_template('components/_emergency_access.html')
+    return render_template('components/Patient Information Management/_emergency_access.html')
 
 @app.route('/submit_emergency_access', methods=['POST'])
 def submit_emergency_access():
@@ -175,7 +175,7 @@ def open_patient_tab(patient_id):
         return "<div class='text-red-500 p-4'>Patient not found.</div>"
 
     current_role = session.get('user_role', 'Physician').lower().replace(' ', '')
-    template_name = f'components/_patient_tab_{current_role}.html'
+    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{current_role}.html'
     return render_template(template_name, patient=patient)
 
 @app.route('/edit_patient_section/<int:patient_id>/<string:field_name>', methods=['GET'])
@@ -188,7 +188,7 @@ def edit_patient_section(patient_id, field_name):
     patient = patients_db.get(patient_id)
     if patient and field_name in patient:
         current_value = patient[field_name]
-        return render_template('components/_edit_field.html', patient_id=patient_id, field_name=field_name, current_value=current_value)
+        return render_template('components/Patient Information View/_edit_field.html', patient_id=patient_id, field_name=field_name, current_value=current_value)
     return "<div class='text-red-500 p-4'>Error: Field or patient not found.</div>"
 
 
@@ -207,7 +207,7 @@ def update_patient_section(patient_id, field_name):
         else:
             patient[field_name] = new_value
 
-        return render_template('components/_patient_data_section.html',
+        return render_template('components/Patient Information View/_patient_data_section.html',
                                patient_id=patient_id,
                                field_name=field_name,
                                label=field_name.replace('_', ' ').title(),

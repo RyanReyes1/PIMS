@@ -1,0 +1,76 @@
+<!--
+Parent: _patient_search.html
+Children: None
+
+Filter options menu display
+Appears when the user clicks the filter button on the patient search form
+User enters the data they wish to filter for, and apply to their current search
+
+Components:
+*Filter Options: Fields for the user to enter or select to what patient information they wish to request; restricted visitation is a checkbox, the rest are textboxes
+*Cancel button: When clicked, cancels the current filter options and closes the filter options menu display
+*Apply filter button: Applies the currently selected filter options to the current search
+
+Notes:
+*If the search is done dynamically (i.e. possible matches are shown as the user is typing), then apply filter is unnecessary
+-->
+<div class="w-64 space-y-3">
+    <h4 class="font-bold text-gray-800">Filter Options</h4>
+    <!--Filter Options-->
+    <div class="flex items-center">
+        <input type="checkbox" id="search-location" name="location" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <label for="search-location" class="ml-2 block text-sm text-gray-900">Location</label>
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" id="search-approved-visitors" name="approved_visitors" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <label for="search-approved-visitors" class="ml-2 block text-sm text-gray-900">Approved Visitors</label>
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" id="search-identity" name="identity" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <label for="search-identity" class="ml-2 block text-sm text-gray-900">Identity</label>
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" id="search-insurance" name="insurance" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <label for="search-insurance" class="ml-2 block text-sm text-gray-900">Insurance</label>
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" id="search-billing" name="billing" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <label for="search-billing" class="ml-2 block text-sm text-gray-900">Billing</label>
+    </div>
+
+    <div class="flex items-center">
+        <input type="checkbox" id="filter-restricted-visitation" name="restricted_visitation" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <label for="filter-restricted-visitation" class="ml-2 block text-sm text-gray-900">Restricted Visitation</label>
+    </div>
+    {# removed deprecated filter checkbox #}
+
+    <!-- commented out for testing purposes
+    (Removed the checkbox; if re-adding, include its hx-vals entry here.)
+    <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md mt-4"
+            hx-get="{{ url_for('search_patients') }}"
+            hx-target="#search-results"
+            hx-vals="js:{name: document.getElementById('search-name').value, location: document.getElementById('search-location').value, approved_visitors: document.getElementById('search-approved-visitors').value, identity: document.getElementById('search-identity').value, insurance: document.getElementById('search-insurance').value, billing: document.getElementById('search-billing').value, restricted_visitation: document.getElementById('filter-restricted-visitation').checked}"
+            onclick="document.getElementById('filter-options-dropdown').innerHTML = '';" {# Close dropdown on search #}>
+        Apply Filters
+    </button>-->
+
+    <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+        <!--Cancel button-->
+        <button type="button"
+                class="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-md text-sm"
+                onclick="document.getElementById('filter-options-dropdown').innerHTML = '';" {# Clear dropdown on cancel #}
+                aria-label="Cancel filter selection">
+            Cancel
+        </button>
+        <!--Apply filter button-->
+    <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm"
+        hx-get="{{ url_for('search_patients') }}"
+        hx-target="#search-results"
+        hx-vals="js:{name: document.getElementById('search-name') ? document.getElementById('search-name').value : null, location: document.getElementById('search-location').checked, approved_visitors: document.getElementById('search-approved-visitors').checked, identity: document.getElementById('search-identity').checked, insurance: document.getElementById('search-insurance').checked, billing: document.getElementById('search-billing').checked, restricted_visitation: document.getElementById('filter-restricted-visitation').checked}"
+        onclick="document.getElementById('filter-options-dropdown').innerHTML = '';" {# Close dropdown on search #}
+        aria-label="Apply patient filters">
+            Apply Filters
+        </button>
+    </div>
+
+</div>

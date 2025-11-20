@@ -1,0 +1,63 @@
+<!-- 
+Parent: Layout
+Children: _patient_data_section.html
+Role: Volunteer - Limited access to basic patient information and visitation details
+-->
+<div id="patient-tab-{{ patient.id }}" class="patient-tab-content p-6 space-y-6 hidden border border-black rounded-lg"
+     role="tabpanel" aria-labelledby="tab-header-{{ patient.id }}"
+     hx-get="{{ url_for('open_patient_tab', patient_id=patient.id) }}"
+     hx-target="#patient-tab-{{ patient.id }}"
+     hx-swap="outerHTML"
+     hx-trigger="refreshContent">
+    
+    <!--Buttons-->
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-2xl font-bold text-gray-800">Patient: {{ patient.name }}</h3>
+        <div class="space-x-2">
+            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+                    hx-get="{{ url_for('print_pdf', patient_id=patient.id) }}"
+                    hx-target="#dynamic-content"
+                    hx-swap="beforeend">
+                Print PDF
+            </button>
+            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+                    hx-get="{{ url_for('export_csv', patient_id=patient.id) }}"
+                    hx-target="#dynamic-content"
+                    hx-swap="beforeend">
+                Export CSV
+            </button>
+            <button
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition duration-200 ease-in-out"
+                hx-get="{{ url_for('request_emergency_access_form') }}"
+                hx-target="#dynamic-content"
+                hx-swap="innerHTML"
+                aria-label="Request emergency access for {{ patient.name }}">
+                Emergency Access
+            </button>
+        </div>
+    </div>
+
+    <!--Fields-->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% set field_name = 'name' %}
+        {% set label = 'Name' %}
+        {% set value = patient.name %}
+        {% set patient_id = patient.id %}
+        {% include 'components/Patient Information View/_patient_data_section.html' %}
+
+        {% set field_name = 'location' %}
+        {% set label = 'Location' %}
+        {% set value = patient.location %}
+        {% include 'components/Patient Information View/_patient_data_section.html' %}
+
+        {% set field_name = 'approved_visitors' %}
+        {% set label = 'Approved Visitors' %}
+        {% set value = patient.approved_visitors %}
+        {% include 'components/Patient Information View/_patient_data_section.html' %}
+
+        {% set field_name = 'restricted_visitation' %}
+        {% set label = 'Restricted Visitation' %}
+        {% set value = patient.restricted_visitation %}
+        {% include 'components/Patient Information View/_patient_data_section.html' %}
+    </div>
+</div>

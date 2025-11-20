@@ -1,0 +1,17 @@
+<!--
+Parent: layout.html
+Children: None
+
+Dashboard header
+Contains the IASO title and the logout button
+
+Components:
+*Logout button: When clicked, logs out the user and calls the log in/out page
+
+Notes:
+*Logout is currently unimplemented, currently being worked on by Houston Trimble, will be merged with his work at a later date
+-->
+<header class="fixed top-0 left-0 right-0 z-20 w-full bg-blue-800 text-white p-4 shadow-md flex justify-between items-center h-16">
+    <div class="text-3xl font-extrabold text-amber-400">IASO</div>
+    <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition duration-200 ease-in-out">Log Out</a>
+</header>

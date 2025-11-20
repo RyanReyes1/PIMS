@@ -1,0 +1,49 @@
+<!--
+Parent: _patient_tab.html
+Children: None
+
+Emergency access request form
+Appears when the user clicks the emergency access button
+The user enters their reason for requesting emergency access, then clicks submit to gain access to ePHI beyond their role premisson
+
+Components:
+*Reason textbox: Textbox where the user will enter their reason for requesting emergency access
+*Cancel button: Cancel the emergency access request and close the form
+*Submit button: Submit the emergency access request and close the form
+
+Notes:
+*Submit is not implemented, as backend is still under development
+*It might be better to have a list of reasons for the user to choose from, so that less time is spent writing down the reason
+-->
+<div class="p-6 bg-white rounded-lg shadow-md border border-black max-w-md mx-auto">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Request Emergency Access</h2>
+
+    <!--Emergency Access Request Form-->
+    <form hx-post="{{ url_for('submit_emergency_access') }}" hx-target="#dynamic-content" hx-swap="innerHTML" class="space-y-4">
+        
+        <!--Reason textbox-->
+        <div>
+            <label for="reason" class="block text-sm font-medium text-gray-700">Enter Reason:</label>
+            <textarea id="reason" name="reason" rows="4" required
+                      class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+        </div>
+
+        <!--Cancel button-->
+        <div class="flex justify-end space-x-3 mt-6"></div>
+        <button type="button"
+                    class="px-4 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out font-semibold"
+                    hx-get="{{ url_for('clear_dynamic_content') }}"
+                    hx-target="#dynamic-content"
+                    hx-swap="innerHTML"
+                    aria-label="Cancel emergency access request and clear form"
+        >
+            Cancel
+        </button>
+
+        <!--Submit request-->
+        <button type="submit" class="px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md transition duration-200 ease-in-out font-semibold">
+            Submit
+        </button>
+        </div>
+    </form>
+</div>

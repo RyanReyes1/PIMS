@@ -1,0 +1,122 @@
+<!--
+Parent: Layout
+Children: _patient_data_section.html
+
+Template for patient information
+Contains buttons for printing PDF/CSV reports, requesting emergency access, and the display template for individual patient data fields
+This form is displayed when the user clicks the patient's tab header, and stays open until they move to another tab.
+User can print a PDF/CSV report containing patient information, request emergency access for more patient data, and view patient information and edit them individually
+
+Components: 
+*Buttons: (I couln't think of a better name) Contains the buttons for printing PDF/CSV documents, and for calling the emergency access form
+*Fields: Grided template design for patient data field display
+
+Notes: 
+*To do: Rework the look of Fields
+*This field should stay open once the user clicks any other button on the page
+-->
+<div id="patient-tab-{{ patient.id }}" class="patient-tab-content p-6 space-y-6 hidden"
+     role="tabpanel" aria-labelledby="tab-header-{{ patient.id }}"
+     hx-get="{{ url_for('open_patient_tab', patient_id=patient.id) }}" {# Route to re-fetch this tabs content #}
+     hx-target="#patient-tab-{{ patient.id }}"
+     hx-swap="outerHTML" {# Replace the whole tab content with the re-rendered version #}
+     hx-trigger="refreshContent" {# Custom event to trigger re-render #}
+     >
+     <!--Buttons-->
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-2xl font-bold text-gray-800">Patient: {{ patient.name }}</h3>
+        <div class="space-x-2">
+            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+                    hx-get="{{ url_for('print_pdf', patient_id=patient.id) }}"
+                    hx-target="#dynamic-content"
+                    hx-swap="beforeend">
+                Print PDF
+            </button>
+            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+                    hx-get="{{ url_for('export_csv', patient_id=patient.id) }}"
+                    hx-target="#dynamic-content"
+                    hx-swap="beforeend">
+                Export CSV
+            </button>
+            <button
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition duration-200 ease-in-out"
+                hx-get="{{ url_for('request_emergency_access_form') }}"
+                hx-target="#dynamic-content"
+                hx-swap="innerHTML"
+                aria-label="Request emergency access for {{ patient.name }}"
+            >
+                Emergency Access
+            </button>
+        </div>
+    </div>
+
+    <!--Fields-->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {# Conditionally render each field based on user role #}
+        {% if can_access_field('name') %}
+            {% set field_name = 'name' %}
+            {% set label = 'Name' %}
+            {% set value = patient.name %}
+            {% set patient_id = patient.id %}
+            {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% endif %}
+
+        {% if can_access_field('location') %}
+            {% set field_name = 'location' %}
+            {% set label = 'Location' %}
+            {% set value = patient.location %}
+            {% set patient_id = patient.id %}
+            {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% endif %}
+
+        {% if can_access_field('approved_visitors') %}
+            {% set field_name = 'approved_visitors' %}
+            {% set label = 'Approved Visitors' %}
+            {% set value = patient.approved_visitors %}
+            {% set patient_id = patient.id %}
+            {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% endif %}
+
+        {% if can_access_field('identity') %}
+            {% set field_name = 'identity' %}
+            {% set label = 'Identity' %}
+            {% set value = patient.identity %}
+            {% set patient_id = patient.id %}
+            {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% endif %}
+
+        {% if can_access_field('insurance') %}
+            {% set field_name = 'insurance' %}
+            {% set label = 'Insurance' %}
+            {% set value = patient.insurance %}
+            {% set patient_id = patient.id %}
+            {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% endif %}
+
+        {% if can_access_field('billing') %}
+            {% set field_name = 'billing' %}
+            {% set label = 'Billing' %}
+            {% set value = patient.billing %}
+            {% set patient_id = patient.id %}
+            {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% endif %}
+
+        {% if can_access_field('restricted_visitation') %}
+            {% set field_name = 'restricted_visitation' %}
+            {% set label = 'Restricted Visitation' %}
+            {% set value = patient.restricted_visitation %}
+            {% set patient_id = patient.id %}
+            {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% endif %}
+
+    {# removed deprecated field #}
+
+        {# Handle case where no fields are accessible #}
+    {% if not (can_access_field('name') or can_access_field('location') or can_access_field('approved_visitors') or can_access_field('identity') or can_access_field('insurance') or can_access_field('billing') or can_access_field('restricted_visitation')) %}
+            <div class="col-span-full p-4 text-center text-gray-500 bg-gray-100 rounded-md">
+                No authorized data visible for your current role.
+            </div>
+        {% endif %}
+    </div>
+</div>
+</div>
