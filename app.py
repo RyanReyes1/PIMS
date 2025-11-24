@@ -40,7 +40,7 @@ PERMISSION_MATRIX = {
 @app.route('/')
 def index():
     if 'user_role' not in session:
-        session['user_role'] = 'Physician' # Set default role on first load
+        session['user_role'] = 'Volunteer' # Set default role on first load
     return render_template('index.html', roles=ROLES, current_role=session['user_role'])
 
 @app.route('/logout')
@@ -84,6 +84,47 @@ def search_patients():
     ]
     return render_template('components/Patient Information Management/Patient Search/_search_results.html', patients=results)
 
+@app.route('/submit_patient_search', methods=['POST'])
+def submit_patient_search():
+    """Handles patient search submission via HTMX form submission.
+    
+    Implements case-insensitive, partial-name search with trailing wildcard logic.
+    Searches only the 'name' field of patient records.
+    Filter checkboxes are received but currently ignored (for future implementation).
+    
+    Form Data:
+    - name: The patient name search term
+    - location: Boolean checkbox state for location filter (currently unused)
+    - approved_visitors: Boolean checkbox state for approved visitors filter (currently unused)
+    - identity: Boolean checkbox state for identity filter (currently unused)
+    - insurance: Boolean checkbox state for insurance filter (currently unused)
+    - billing: Boolean checkbox state for billing filter (currently unused)
+    - restricted_visitation: Boolean checkbox state for restricted visitation filter (currently unused)
+    
+    Returns: Rendered template component with matching patient results
+    """
+    global patients_db
+    
+    # Extract search term from form data
+    search_term = request.form.get('name', '').strip().lower()
+    
+    # Perform trailing wildcard search: check if patient name STARTS WITH search term
+    # Case-insensitive comparison
+    matching_patients = []
+    if search_term:  # Only search if term is not empty
+        for patient_id, patient in patients_db.items():
+            patient_name = patient.get('name', '').lower()
+            # Trailing wildcard: name must start with the search term
+            if patient_name.startswith(search_term):
+                matching_patients.append(patient)
+    
+    # Render and return the search results component with matching patients
+    return render_template(
+        'components/Patient Information Management/Patient Search/_search_results.html',
+        patients=matching_patients,
+        search_term=search_term
+    )
+
 
 @app.route('/register_new_patient', methods=['GET'])
 def register_new_patient_form():
@@ -112,8 +153,16 @@ def register_patient():
     patients_db[new_patient_id] = new_patient
 
     # Get current role and determine the correct template
-    current_role = session.get('user_role', 'Physician').lower().replace(' ', '')
-    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{current_role}.html'
+    current_role = session.get('user_role', 'Physician')
+    # Map role names to template file names
+    role_to_template = {
+        'Physician': 'physician',
+        'Medical Personnel': 'medicalpersonnel',
+        'Office Staff': 'officeworker',
+        'Volunteer': 'volunteer'
+    }
+    template_role = role_to_template.get(current_role, 'physician').lower()
+    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
 
     # Generate the HTML for the new patient tab header (OOB swap)
     tab_header_html = render_template('components/Patient Information View/_new_patient_tab_header.html', patient=new_patient)
@@ -174,8 +223,16 @@ def open_patient_tab(patient_id):
     if not patient:
         return "<div class='text-red-500 p-4'>Patient not found.</div>"
 
-    current_role = session.get('user_role', 'Physician').lower().replace(' ', '')
-    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{current_role}.html'
+    current_role = session.get('user_role', 'Physician')
+    # Map role names to template file names
+    role_to_template = {
+        'Physician': 'physician',
+        'Medical Personnel': 'medicalpersonnel',
+        'Office Staff': 'officeworker',
+        'Volunteer': 'volunteer'
+    }
+    template_role = role_to_template.get(current_role, 'physician').lower()
+    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
     return render_template(template_name, patient=patient)
 
 @app.route('/edit_patient_section/<int:patient_id>/<string:field_name>', methods=['GET'])

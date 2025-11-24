@@ -1,74 +1,87 @@
 <!--
-Parent: _patient-search.html
+Parent: _patient_search.html
 Children: None
 
-Displays search results
-?As the user is typing, dynamically update the search results to show possible matches
-?The user clicks the correct patient's result, or if no match, show "no match found" message
+Displays search results from patient search submission.
+Shows matching patients in a clickable list format, or displays "no results" message.
 
 Components:
-*Search Result list: Displays possible matches, and if clicked, generates a new tab in the patient data section for that patient
+*Search Result List: Displays matching patients with name and ID
+*Result Item: Clickable patient row that opens patient tab via HTMX
+*No Results Message: Displayed when search returns zero matches or no search term provided
 
-Notes: 
-*No search button, since it will be quicker to click on the correct patient's result or show a "no match found"; unless Tier 1.3 matching wildcard requires it
-*Thought about adding a "register patient" button that brings up the patient registration form for quick access; however, the sidebar is always visible
+Notes:
+*Each result item is clickable and triggers hx-get to open_patient_tab endpoint
+*Maintains tab management behavior via HTMX after-request event
+*Data attributes (data-patient-id) included for future extensibility
 -->
 
-<!--
-Preface: My understanding of this code is not good. I am leaving this in place to avoid breaking what already works
--->
-{% if patients %}
-    <ul class="divide-y divide-gray-200">
-        {% for patient in patients %}
-        <li class="py-3 px-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer"
-            hx-get="{{ url_for('open_patient_tab', patient_id=patient.id) }}"
-            hx-target="#patient-tab-content-area"
-            hx-swap="beforeend"
-            hx-on--after-request="
-                const tabHeadersContainer = document.getElementById('patient-tab-headers');
-                let existingTabHeader = document.getElementById('tab-header-{{ patient.id }}');
+{% if search_term %}
+    {% if patients %}
+        <div class="space-y-2">
+            <p class="text-sm text-gray-600 mb-3">Found {{ patients|length }} result{{ 's' if patients|length != 1 else '' }}:</p>
+            <ul class="divide-y divide-gray-200 border border-gray-200 rounded-md overflow-hidden">
+                {% for patient in patients %}
+                <li class="py-3 px-4 flex justify-between items-center hover:bg-blue-50 cursor-pointer transition duration-150"
+                    data-patient-id="{{ patient.id }}"
+                    hx-get="{{ url_for('open_patient_tab', patient_id=patient.id) }}"
+                    hx-target="#patient-tab-content-area"
+                    hx-swap="beforeend"
+                    role="button"
+                    tabindex="0"
+                    hx-on--after-request="
+                        const tabHeadersContainer = document.getElementById('patient-tab-headers');
+                        let existingTabHeader = document.getElementById('tab-header-{{ patient.id }}');
 
-                if (!existingTabHeader) {
-                    existingTabHeader = document.createElement('button');
-                    existingTabHeader.id = 'tab-header-{{ patient.id }}';
-                    existingTabHeader.classList.add('px-4', 'py-2', 'text-sm', 'font-medium', 'border-t', 'border-r', 'border-l', 'rounded-t-md', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:outline-none', 'focus:z-10', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-500');
-                    existingTabHeader.textContent = '{{ patient.name }}';
-                    existingTabHeader.setAttribute('aria-controls', 'patient-tab-{{ patient.id }}');
-                    existingTabHeader.setAttribute('role', 'tab');
-                    existingTabHeader.onclick = function() {
+                        if (!existingTabHeader) {
+                            existingTabHeader = document.createElement('button');
+                            existingTabHeader.id = 'tab-header-{{ patient.id }}';
+                            existingTabHeader.classList.add('px-4', 'py-2', 'text-sm', 'font-medium', 'border-t', 'border-r', 'border-l', 'rounded-t-md', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:outline-none', 'focus:z-10', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-500');
+                            existingTabHeader.textContent = '{{ patient.name }}';
+                            existingTabHeader.setAttribute('aria-controls', 'patient-tab-{{ patient.id }}');
+                            existingTabHeader.setAttribute('role', 'tab');
+                            existingTabHeader.onclick = function() {
+                                document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                                document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
+                                document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
+                                    btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                                    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                                });
+                                this.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                                this.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                            };
+                            tabHeadersContainer.appendChild(existingTabHeader);
+                        }
+
+                        // Deactivate all existing tabs
                         document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
-                        document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
                         document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
                             btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
                             btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
                         });
-                        this.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
-                        this.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                    };
-                    tabHeadersContainer.appendChild(existingTabHeader);
-                }
 
-                // Deactivate all existing tabs
-                document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
-                document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
-                    btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
-                    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                });
+                        // Activate the newly created tab (or existing one if already open)
+                        document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
+                        existingTabHeader.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                        existingTabHeader.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
 
-
-                // Activate the newly created tab (or existing one if already open)
-                document.getElementById('patient-tab-{{ patient.id }}').classList.remove('hidden');
-                existingTabHeader.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
-                existingTabHeader.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-
-                existingTabHeader.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            "
-        >
-            <span>{{ patient.name }} (ID: {{ patient.id }})</span>
-            <span class="text-sm text-gray-500">{{ patient.location }}</span>
-        </li>
-        {% endfor %}
-    </ul>
+                        existingTabHeader.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    "
+                >
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">{{ patient.name }}</p>
+                        <p class="text-xs text-gray-500 mt-1">ID: {{ patient.id }} • {{ patient.location }}</p>
+                    </div>
+                    <span class="text-gray-400 ml-4">→</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p class="text-yellow-800">No patients found matching "<strong>{{ search_term }}</strong>". Try a different search term or register a new patient.</p>
+        </div>
+    {% endif %}
 {% else %}
-    <p class="text-gray-500">No patients found. Try broadening your search or registering a new patient.</p>
+    <p class="text-gray-500 italic">Enter a patient name and click 'Search' to view results.</p>
 {% endif %}
