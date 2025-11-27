@@ -1,82 +1,71 @@
 <!--
 Parent: _sidebar.html
-Children: _filter_options.html
+Children: _search_results.html, _options_filter_[role].html
 
-Patient search field/form
-Contains a searchbox, a filter, a cancel button, a submit button, and a search result field
-The user will enter a patient name in the searchbox, and use the filter to specify what information they wish to request
-The submit button triggers an HTMX POST request to the backend for explicit search submission
+Patient search interface with dynamic role-based filter loading.
+The user enters a patient name and submits to see results.
+Clicking a patient result loads a role-specific filter component.
 
 Components:
-*Search Field: Textbox for the user to enter a possible patient's name
-*Filter button: Clicking this will display menu for user to select what information to request
-*Filter field: Space where the filter menu is placed into
-*Submit Button: Explicitly submits the search query and filter options via HTMX
-*Cancel button: Closes the filter menu or clears the form
-*Search Result: Displays possible patients or submission status
+*Search Field: Textbox for entering patient name
+*Submit Button: Submits search to backend
+*Cancel Button: Clears dynamic content
+*Search Results Area: Displays matching patients
+*Filter/Action Area: Dynamically loads role-specific filter component when patient is selected
 
 Notes:
-*Form-like container enables structured data submission via HTMX
-*Filter Field appears as a square on the page below the filter button, styled to be appropriately positioned
+*Filter area is populated dynamically via HTMX when a patient result is clicked
+*Old dropdown filter has been removed - filtering now happens at the patient tab creation stage
 -->
 <div class="p-6 bg-white rounded-lg shadow-md border border-black">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">Search Patient Records</h2>
     
-    <!-- Form-like container for search submission -->
-    <div class="search-form-container">
-        <div class="flex items-center space-x-4 mb-4">
-            <!--Search Field-->
-            <input type="text" id="search-name" name="name" placeholder="Search by Name..."
-                   class="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   aria-label="Search by patient name"
-                   >
-            <div class="relative inline-block"> {# Add relative parent for positioning #}
-                <!--Filter Button-->
-                <button id="filter-button" type="button"
-                        class="px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition duration-200 ease-in-out relative"
-                        hx-get="{{ url_for('filter_options') }}"
-                        hx-target="#filter-options-dropdown"
+    <!-- Two-column layout: Search/Results on left, Filter/Actions on right -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column: Search Bar and Results -->
+        <div class="lg:col-span-2">
+            <!-- Search Input Area -->
+            <div class="flex items-center space-x-4 mb-4">
+                <!--Search Field-->
+                <input type="text" id="search-name" name="name" placeholder="Search by Name..."
+                       class="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       aria-label="Search by patient name"
+                       >
+                <!--Submit Button-->
+                <button type="button"
+                        class="px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 ease-in-out font-semibold"
+                        hx-post="{{ url_for('submit_patient_search') }}"
+                        hx-target="#search-results"
                         hx-swap="innerHTML"
-                        onclick="event.stopPropagation();" {# Prevent filter list from closing immediately #}
-                        aria-expanded="false"
-                        aria-controls="filter-options-dropdown"
+                        hx-vals="js:{name: document.getElementById('search-name').value}"
+                        aria-label="Submit patient search"
                 >
-                    Filter
+                    Search
                 </button>
-                <!--Filter Field-->
-                <div id="filter-options-dropdown" class="absolute z-30 bg-white border border-gray-200 rounded-md shadow-lg p-4 mt-2"
-                 hx-on="click:event.stopPropagation();" {# Keep dropdown open on clicks inside #}
-                 role="menu" aria-orientation="vertical" aria-labelledby="filter-button">
-                <!-- Filter options will be loaded here by HTMX -->
-                </div>
-            </div>
-            <!--Submit Button-->
-            <button type="button"
-                    class="px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 ease-in-out font-semibold"
-                    hx-post="{{ url_for('submit_patient_search') }}"
-                    hx-target="#search-results"
+                <!--Cancel Button-->
+                <button type="button"
+                    class="px-5 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out"
+                    hx-get="{{ url_for('clear_dynamic_content') }}"
+                    hx-target="#dynamic-content"
                     hx-swap="innerHTML"
-                    hx-vals="js:{name: document.getElementById('search-name').value, location: document.getElementById('search-location').checked, approved_visitors: document.getElementById('search-approved-visitors').checked, identity: document.getElementById('search-identity').checked, insurance: document.getElementById('search-insurance').checked, billing: document.getElementById('search-billing').checked, restricted_visitation: document.getElementById('filter-restricted-visitation').checked}"
-                    aria-label="Submit patient search"
-            >
-                Search
-            </button>
-            <!--Cancel Button-->
-            <button type="button"
-                class="px-5 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out"
-                hx-get="{{ url_for('clear_dynamic_content') }}"
-                hx-target="#dynamic-content"
-                hx-swap="innerHTML"
-                aria-label="Cancel patient search and clear form"
-            >
-                Cancel
-            </button>
+                    aria-label="Cancel patient search and clear form"
+                >
+                    Cancel
+                </button>
+            </div>
+            
+            <!--Search Results Container-->
+            <div id="search-results" class="border border-gray-200 rounded-md p-4 bg-gray-50 min-h-48">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Search Results:</h3>
+                <p class="text-gray-500 italic">Click 'Search' button to view patient results.</p>
+            </div>
         </div>
-    </div>
-    
-    <!--Search Results/Status-->
-    <div id="search-results" class="mt-6 border-t border-gray-200 pt-4">
-        <h3 class="text-xl font-semibold text-gray-700 mb-3">Search Results:</h3>
-        <p class="text-gray-500">Click 'Search' button to submit your search criteria.</p>
+        
+        <!-- Right Column: Filter/Action Area (dynamically loaded) -->
+        <div class="lg:col-span-1">
+            <div id="filter-action-area" class="border border-gray-200 rounded-md p-4 bg-gray-50 min-h-48">
+                <p class="text-gray-500 italic text-center">Select a patient to load filter options.</p>
+            </div>
+        </div>
     </div>
 </div>

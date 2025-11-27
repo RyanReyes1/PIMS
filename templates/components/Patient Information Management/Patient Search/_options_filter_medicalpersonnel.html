@@ -1,0 +1,124 @@
+<!--
+Parent: _patient_search.html (dynamically loaded)
+Children: None
+
+Role-Specific Filter Component for Medical Personnel
+Displays only fields that Medical Personnel users have permission to access
+This component is dynamically loaded via HTMX when a patient result is clicked
+
+Permitted Fields for Medical Personnel:
+- name
+- location
+- approved_visitors
+- identity
+- insurance
+- billing
+- restricted_visitation
+- full_chart
+
+Components:
+*Prompt Message: Instructs user to select fields to load for patient
+*Field Checkboxes: Allows user to select which fields to view
+*Apply Filters Button: Submits selected fields and creates patient tab with filtered data
+*Hidden patient_id: Tracks which patient this filter is for
+-->
+
+<div class="space-y-4">
+    <h4 class="font-bold text-gray-800 border-b pb-2">Select Fields to Load</h4>
+    <p class="text-sm text-gray-600 italic">Choose which fields you'd like to view for this patient:</p>
+    
+    <!-- Hidden field to track patient ID -->
+    <input type="hidden" id="filter-patient-id" value="{{ patient_id }}" />
+    
+    <!-- Filter Checkboxes -->
+    <div class="space-y-3">
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-name" name="name" value="name" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-name" class="ml-2 block text-sm text-gray-900">Name</label>
+        </div>
+        
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-location" name="location" value="location" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-location" class="ml-2 block text-sm text-gray-900">Location</label>
+        </div>
+        
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-approved-visitors" name="approved_visitors" value="approved_visitors" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-approved-visitors" class="ml-2 block text-sm text-gray-900">Approved Visitors</label>
+        </div>
+        
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-identity" name="identity" value="identity" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-identity" class="ml-2 block text-sm text-gray-900">Identity</label>
+        </div>
+        
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-insurance" name="insurance" value="insurance" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-insurance" class="ml-2 block text-sm text-gray-900">Insurance</label>
+        </div>
+        
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-billing" name="billing" value="billing" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-billing" class="ml-2 block text-sm text-gray-900">Billing</label>
+        </div>
+        
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-restricted-visitation" name="restricted_visitation" value="restricted_visitation" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-restricted-visitation" class="ml-2 block text-sm text-gray-900">Restricted Visitation</label>
+        </div>
+        
+        <div class="flex items-center">
+            <input type="checkbox" id="filter-full-chart" name="full_chart" value="full_chart" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+            <label for="filter-full-chart" class="ml-2 block text-sm text-gray-900">Full Chart Access</label>
+        </div>
+    </div>
+    
+    <!-- Apply Filters Button -->
+    <div class="pt-4 border-t border-gray-200">
+        <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold transition duration-150"
+                hx-post="{{ url_for('create_patient_tab', patient_id=patient_id) }}"
+                hx-target="#patient-tab-content-area"
+                hx-swap="beforeend"
+                hx-vals="js:{selected_fields: Array.from(document.querySelectorAll('#filter-action-area input[type=checkbox]:checked')).map(cb => cb.name)}"
+                hx-on--after-request="
+                    const patientId = {{ patient_id }};
+                    const tabHeadersContainer = document.getElementById('patient-tab-headers');
+                    let existingTabHeader = document.getElementById('tab-header-' + patientId);
+
+                    if (!existingTabHeader) {
+                        existingTabHeader = document.createElement('button');
+                        existingTabHeader.id = 'tab-header-' + patientId;
+                        existingTabHeader.classList.add('px-4', 'py-2', 'text-sm', 'font-medium', 'border-t', 'border-r', 'border-l', 'rounded-t-md', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:outline-none', 'focus:z-10', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-500');
+                        existingTabHeader.textContent = 'Patient ' + patientId;
+                        existingTabHeader.setAttribute('aria-controls', 'patient-tab-' + patientId);
+                        existingTabHeader.setAttribute('role', 'tab');
+                        existingTabHeader.onclick = function() {
+                            document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                            document.getElementById('patient-tab-' + patientId).classList.remove('hidden');
+                            document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
+                                btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                                btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                            });
+                            this.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                            this.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                        };
+                        tabHeadersContainer.appendChild(existingTabHeader);
+                    }
+
+                    document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                    document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
+                        btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                        btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    });
+
+                    document.getElementById('patient-tab-' + patientId).classList.remove('hidden');
+                    existingTabHeader.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                    existingTabHeader.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+
+                    existingTabHeader.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                "
+                aria-label="Apply selected filters and load patient data">
+            Apply Filters
+        </button>
+    </div>
+</div>

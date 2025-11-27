@@ -40,7 +40,7 @@ PERMISSION_MATRIX = {
 @app.route('/')
 def index():
     if 'user_role' not in session:
-        session['user_role'] = 'Volunteer' # Set default role on first load
+        session['user_role'] = 'Office Staff' # Set default role on first load
     return render_template('index.html', roles=ROLES, current_role=session['user_role'])
 
 @app.route('/logout')
@@ -90,16 +90,9 @@ def submit_patient_search():
     
     Implements case-insensitive, partial-name search with trailing wildcard logic.
     Searches only the 'name' field of patient records.
-    Filter checkboxes are received but currently ignored (for future implementation).
     
     Form Data:
     - name: The patient name search term
-    - location: Boolean checkbox state for location filter (currently unused)
-    - approved_visitors: Boolean checkbox state for approved visitors filter (currently unused)
-    - identity: Boolean checkbox state for identity filter (currently unused)
-    - insurance: Boolean checkbox state for insurance filter (currently unused)
-    - billing: Boolean checkbox state for billing filter (currently unused)
-    - restricted_visitation: Boolean checkbox state for restricted visitation filter (currently unused)
     
     Returns: Rendered template component with matching patient results
     """
@@ -270,6 +263,111 @@ def update_patient_section(patient_id, field_name):
                                label=field_name.replace('_', ' ').title(),
                                value=patient[field_name])
     return "<div class='text-red-500 p-4'>Error: Update failed.</div>"
+
+@app.route('/load_filter_for_patient/<int:patient_id>', methods=['GET'])
+def load_filter_for_patient(patient_id):
+    """Stage 1: Load role-specific filter component for the selected patient.
+    
+    This endpoint dynamically loads the appropriate filter component based on the
+    current user's role. The PERMISSION_MATRIX determines which fields are shown.
+    
+    Args:
+        patient_id: The ID of the patient being selected
+    
+    Returns:
+        HTML fragment (role-specific filter component) to be inserted into #filter-action-area
+    """
+    # Verify patient exists
+    if patient_id not in patients_db:
+        return "<div class='text-red-500 p-4'>Patient not found.</div>"
+    
+    # Get current user's role
+    current_role = session.get('user_role', 'Physician')
+    
+    # Map role names to filter component template names
+    role_to_filter_template = {
+        'Physician': 'physician',
+        'Medical Personnel': 'medicalpersonnel',
+        'Office Staff': 'officestaff',
+        'Volunteer': 'volunteer'
+    }
+    
+    filter_template_role = role_to_filter_template.get(current_role, 'physician').lower()
+    filter_template_name = f'components/Patient Information Management/Patient Search/_options_filter_{filter_template_role}.html'
+    
+    return render_template(filter_template_name, patient_id=patient_id)
+
+
+@app.route('/create_patient_tab/<int:patient_id>', methods=['POST'])
+def create_patient_tab(patient_id):
+    """Stage 2: Create patient tab with two-stage field filtering.
+    
+    This endpoint implements the critical two-stage filtering logic:
+    1. User-selected fields: Only fields selected via checkboxes are included
+    2. Role-based permissions: Only fields permitted by PERMISSION_MATRIX are included
+    
+    A field is only displayed if it passes BOTH checks.
+    
+    Form Data:
+        selected_fields: List of field names selected by user via checkboxes
+    
+    Returns:
+        HTML fragment (patient tab) with filtered data to be appended to #patient-tab-content-area
+    """
+    global patients_db
+    
+    # Verify patient exists
+    if patient_id not in patients_db:
+        return "<div class='text-red-500 p-4'>Patient not found.</div>"
+    
+    patient = patients_db[patient_id]
+    current_role = session.get('user_role', 'Physician')
+    
+    # Get selected fields from form submission
+    selected_fields_str = request.form.get('selected_fields', '[]')
+    # Parse JSON array from HTMX request
+    import json
+    try:
+        selected_fields = json.loads(selected_fields_str)
+    except (json.JSONDecodeError, TypeError):
+        selected_fields = []
+    
+    # Get role-based permitted fields
+    permitted_fields = PERMISSION_MATRIX.get(current_role, [])
+    
+    # Helper function: Apply two-stage filtering logic
+    def get_filtered_value(field_name):
+        """Returns field value if it passes both selection and permission checks, else empty string."""
+        # Check 1: User must have selected this field
+        if field_name not in selected_fields:
+            return ""
+        
+        # Check 2: Field must be permitted for this role
+        if field_name not in permitted_fields:
+            return ""
+        
+        # Both checks passed - return the actual value
+        return patient.get(field_name, "")
+    
+    # Map role names to patient tab template names
+    role_to_template = {
+        'Physician': 'physician',
+        'Medical Personnel': 'medicalpersonnel',
+        'Office Staff': 'officeworker',
+        'Volunteer': 'volunteer'
+    }
+    
+    template_role = role_to_template.get(current_role, 'physician').lower()
+    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
+    
+    # Render template with filtered data and helper function
+    return render_template(
+        template_name,
+        patient=patient,
+        filtered_value=get_filtered_value,
+        selected_fields=selected_fields,
+        permitted_fields=permitted_fields
+    )
 
 # Add routes for print PDF and export CSV (placeholder for now)
 @app.route('/print_pdf/<int:patient_id>')
