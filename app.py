@@ -19,8 +19,7 @@ patients_db[1] = {
     'identity': 'AB123456C',
     'insurance': 'BlueCross BlueShield',
     'billing': 'Current',
-    'restricted_visitation': False,
-    'full_chart': True
+    'restricted_visitation': False
 }
 patient_id_counter = 1
 
@@ -29,8 +28,8 @@ ROLES = ['Physician', 'Medical Personnel', 'Office Staff', 'Volunteer']
 
 # Permission Matrix: Maps role to a list of fields they can see
 PERMISSION_MATRIX = {
-    'Physician': ['name', 'location', 'approved_visitors', 'identity', 'insurance', 'billing', 'restricted_visitation', 'full_chart'],
-    'Medical Personnel': ['name', 'location', 'approved_visitors', 'identity', 'insurance', 'billing', 'restricted_visitation', 'full_chart'],
+    'Physician': ['name', 'location', 'approved_visitors', 'identity', 'insurance', 'billing', 'restricted_visitation'],
+    'Medical Personnel': ['name', 'location', 'approved_visitors', 'identity', 'insurance', 'billing', 'restricted_visitation'],
     'Office Staff': ['identity', 'insurance', 'billing'],
     'Volunteer': ['name', 'location', 'approved_visitors', 'restricted_visitation']
 }
@@ -73,14 +72,12 @@ def search_patients():
     search_term = request.args.get('name', '').lower()
     location = request.args.get('location', '').lower()
     restricted_visitation = request.args.get('restricted_visitation') == 'on'
-    full_chart = request.args.get('full_chart') == 'on'
 
     results = [
         patient for patient_id, patient in patients_db.items()
         if search_term in patient['name'].lower() and \
            (not location or location in patient['location'].lower()) and \
-           (not restricted_visitation or patient.get('restricted_visitation', False) == restricted_visitation) and \
-           (not full_chart or patient.get('full_chart', False) == full_chart)
+           (not restricted_visitation or patient.get('restricted_visitation', False) == restricted_visitation)
     ]
     return render_template('components/Patient Information Management/Patient Search/_search_results.html', patients=results)
 
@@ -140,8 +137,7 @@ def register_patient():
         'identity': request.form['identity'],
         'insurance': request.form['insurance'],
         'billing': request.form['billing'],
-        'restricted_visitation': 'restricted_visitation' in request.form,
-        'full_chart': False # Default for new patients
+        'restricted_visitation': 'restricted_visitation' in request.form
     }
     patients_db[new_patient_id] = new_patient
 
@@ -252,7 +248,7 @@ def update_patient_section(patient_id, field_name):
     patient = patients_db.get(patient_id)
     if patient and field_name in patient:
         new_value = request.form[f'edit-{field_name}']
-        if field_name in ['restricted_visitation', 'full_chart']:
+        if field_name in ['restricted_visitation']:
             patient[field_name] = (new_value == 'on')
         else:
             patient[field_name] = new_value

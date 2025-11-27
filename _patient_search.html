@@ -25,7 +25,7 @@ Issues:
                hx-get="{{ url_for('search_patients') }}"
                hx-target="#search-results"
                hx-trigger="keyup changed delay:500ms"
-               hx-vals="js:{name: document.getElementById('search-name').value, location: document.getElementById('search-location').value, restricted_visitation: document.getElementById('filter-restricted-visitation')?.checked, full_chart: document.getElementById('filter-full-chart')?.checked}"
+               hx-vals="js:{name: document.getElementById('search-name').value, location: document.getElementById('search-location').value, restricted_visitation: document.getElementById('filter-restricted-visitation')?.checked}"
                aria-label="Search by patient name"
                >
     <div class="relative inline-block"> {# Add relative parent for positioning #}
