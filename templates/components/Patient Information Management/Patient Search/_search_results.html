@@ -4,17 +4,17 @@ Children: None
 
 Displays search results from patient search submission.
 Shows matching patients in a clickable list format.
-Clicking a patient loads their role-specific filter options.
+Clicking a patient directly opens their tab with role-based permissions applied.
 
 Components:
 *Search Result List: Displays matching patients with name and location
-*Result Item: Clickable patient row that loads filter via HTMX
+*Result Item: Clickable patient row that creates patient tab via HTMX
 *No Results Message: Displayed when search returns zero matches
 
 Notes:
-*Each result item triggers hx-get to load_filter_for_patient endpoint
-*Filter options load into #filter-action-area on the right side
-*Two-stage workflow: select patient → load filters → select fields → create tab
+*Each result item triggers hx-get to create_patient_tab endpoint
+*Direct workflow: search → select patient → tab created with role permissions
+*Single-stage RBAC: patient data filtered by current user role only
 -->
 
 {% if search_term %}
@@ -25,9 +25,46 @@ Notes:
                 {% for patient in patients %}
                 <li class="py-3 px-4 flex justify-between items-center hover:bg-blue-50 cursor-pointer transition duration-150"
                     data-patient-id="{{ patient.id }}"
-                    hx-get="{{ url_for('load_filter_for_patient', patient_id=patient.id) }}"
-                    hx-target="#filter-action-area"
-                    hx-swap="innerHTML"
+                    hx-get="{{ url_for('create_patient_tab', patient_id=patient.id) }}"
+                    hx-target="#patient-tab-content-area"
+                    hx-swap="beforeend"
+                    hx-on--after-request="
+                        const patientId = {{ patient.id }};
+                        const tabHeadersContainer = document.getElementById('patient-tab-headers');
+                        let existingTabHeader = document.getElementById('tab-header-' + patientId);
+
+                        if (!existingTabHeader) {
+                            existingTabHeader = document.createElement('button');
+                            existingTabHeader.id = 'tab-header-' + patientId;
+                            existingTabHeader.classList.add('px-4', 'py-2', 'text-sm', 'font-medium', 'border-t', 'border-r', 'border-l', 'rounded-t-md', 'bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:outline-none', 'focus:z-10', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-500');
+                            existingTabHeader.textContent = '{{ patient.name }}';
+                            existingTabHeader.setAttribute('aria-controls', 'patient-tab-' + patientId);
+                            existingTabHeader.setAttribute('role', 'tab');
+                            existingTabHeader.onclick = function() {
+                                document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                                document.getElementById('patient-tab-' + patientId).classList.remove('hidden');
+                                document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
+                                    btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                                    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                                });
+                                this.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                                this.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                            };
+                            tabHeadersContainer.appendChild(existingTabHeader);
+                        }
+
+                        document.querySelectorAll('#patient-tab-content-area > div').forEach(div => div.classList.add('hidden'));
+                        document.querySelectorAll('#patient-tab-headers > button').forEach(btn => {
+                            btn.classList.remove('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                            btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                        });
+
+                        document.getElementById('patient-tab-' + patientId).classList.remove('hidden');
+                        existingTabHeader.classList.add('bg-white', 'border-b-0', 'text-gray-900', 'hover:bg-gray-100');
+                        existingTabHeader.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+
+                        existingTabHeader.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    "
                     role="button"
                     tabindex="0"
                 >

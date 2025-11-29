@@ -1,71 +1,60 @@
 <!--
 Parent: _sidebar.html
-Children: _search_results.html, _options_filter_[role].html
+Children: _search_results.html
 
-Patient search interface with dynamic role-based filter loading.
+Patient search interface for finding and opening patient records.
 The user enters a patient name and submits to see results.
-Clicking a patient result loads a role-specific filter component.
+Clicking a patient result directly opens their tab with role-based permissions applied.
 
 Components:
 *Search Field: Textbox for entering patient name
-*Submit Button: Submits search to backend
+*Submit Button: Submits search query to backend
 *Cancel Button: Clears dynamic content
 *Search Results Area: Displays matching patients
-*Filter/Action Area: Dynamically loads role-specific filter component when patient is selected
 
 Notes:
-*Filter area is populated dynamically via HTMX when a patient result is clicked
-*Old dropdown filter has been removed - filtering now happens at the patient tab creation stage
+*Single-stage workflow: search → select patient → tab created with role permissions
+*Patient data automatically filtered by current user role
 -->
 <div class="p-6 bg-white rounded-lg shadow-md border border-black">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">Search Patient Records</h2>
     
-    <!-- Two-column layout: Search/Results on left, Filter/Actions on right -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left Column: Search Bar and Results -->
-        <div class="lg:col-span-2">
-            <!-- Search Input Area -->
-            <div class="flex items-center space-x-4 mb-4">
-                <!--Search Field-->
-                <input type="text" id="search-name" name="name" placeholder="Search by Name..."
-                       class="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       aria-label="Search by patient name"
-                       >
-                <!--Submit Button-->
-                <button type="button"
-                        class="px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 ease-in-out font-semibold"
-                        hx-post="{{ url_for('submit_patient_search') }}"
-                        hx-target="#search-results"
-                        hx-swap="innerHTML"
-                        hx-vals="js:{name: document.getElementById('search-name').value}"
-                        aria-label="Submit patient search"
-                >
-                    Search
-                </button>
-                <!--Cancel Button-->
-                <button type="button"
-                    class="px-5 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out"
-                    hx-get="{{ url_for('clear_dynamic_content') }}"
-                    hx-target="#dynamic-content"
+    <!-- Search Bar and Results -->
+    <div class="space-y-4">
+        <!-- Search Input Area -->
+        <div class="flex items-center space-x-4">
+            <!--Search Field-->
+            <input type="text" id="search-name" name="name" placeholder="Search by Name..."
+                   class="flex-1 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   aria-label="Search by patient name"
+                   >
+            <!--Submit Button-->
+            <button type="button"
+                    class="px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 ease-in-out font-semibold"
+                    hx-post="{{ url_for('submit_patient_search') }}"
+                    hx-target="#search-results"
                     hx-swap="innerHTML"
-                    aria-label="Cancel patient search and clear form"
-                >
-                    Cancel
-                </button>
-            </div>
-            
-            <!--Search Results Container-->
-            <div id="search-results" class="border border-gray-200 rounded-md p-4 bg-gray-50 min-h-48">
-                <h3 class="text-lg font-semibold text-gray-700 mb-3">Search Results:</h3>
-                <p class="text-gray-500 italic">Click 'Search' button to view patient results.</p>
-            </div>
+                    hx-vals="js:{name: document.getElementById('search-name').value}"
+                    aria-label="Submit patient search"
+            >
+                Search
+            </button>
+            <!--Cancel Button-->
+            <button type="button"
+                class="px-5 py-3 bg-gray-400 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out"
+                hx-get="{{ url_for('clear_dynamic_content') }}"
+                hx-target="#dynamic-content"
+                hx-swap="innerHTML"
+                aria-label="Cancel patient search and clear form"
+            >
+                Cancel
+            </button>
         </div>
         
-        <!-- Right Column: Filter/Action Area (dynamically loaded) -->
-        <div class="lg:col-span-1">
-            <div id="filter-action-area" class="border border-gray-200 rounded-md p-4 bg-gray-50 min-h-48">
-                <p class="text-gray-500 italic text-center">Select a patient to load filter options.</p>
-            </div>
+        <!--Search Results Container-->
+        <div id="search-results" class="border border-gray-200 rounded-md p-4 bg-gray-50 min-h-48">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">Search Results:</h3>
+            <p class="text-gray-500 italic">Click 'Search' button to view patient results.</p>
         </div>
     </div>
 </div>

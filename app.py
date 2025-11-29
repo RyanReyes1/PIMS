@@ -260,55 +260,18 @@ def update_patient_section(patient_id, field_name):
                                value=patient[field_name])
     return "<div class='text-red-500 p-4'>Error: Update failed.</div>"
 
-@app.route('/load_filter_for_patient/<int:patient_id>', methods=['GET'])
-def load_filter_for_patient(patient_id):
-    """Stage 1: Load role-specific filter component for the selected patient.
+@app.route('/create_patient_tab/<int:patient_id>', methods=['GET'])
+def create_patient_tab(patient_id):
+    """Create patient tab with single-stage role-based filtering.
     
-    This endpoint dynamically loads the appropriate filter component based on the
-    current user's role. The PERMISSION_MATRIX determines which fields are shown.
+    This endpoint implements role-based RBAC by automatically filtering patient
+    data based on the current user's permissions (PERMISSION_MATRIX).
     
     Args:
-        patient_id: The ID of the patient being selected
+        patient_id: The ID of the patient to display
     
     Returns:
-        HTML fragment (role-specific filter component) to be inserted into #filter-action-area
-    """
-    # Verify patient exists
-    if patient_id not in patients_db:
-        return "<div class='text-red-500 p-4'>Patient not found.</div>"
-    
-    # Get current user's role
-    current_role = session.get('user_role', 'Physician')
-    
-    # Map role names to filter component template names
-    role_to_filter_template = {
-        'Physician': 'physician',
-        'Medical Personnel': 'medicalpersonnel',
-        'Office Staff': 'officestaff',
-        'Volunteer': 'volunteer'
-    }
-    
-    filter_template_role = role_to_filter_template.get(current_role, 'physician').lower()
-    filter_template_name = f'components/Patient Information Management/Patient Search/_options_filter_{filter_template_role}.html'
-    
-    return render_template(filter_template_name, patient_id=patient_id)
-
-
-@app.route('/create_patient_tab/<int:patient_id>', methods=['POST'])
-def create_patient_tab(patient_id):
-    """Stage 2: Create patient tab with two-stage field filtering.
-    
-    This endpoint implements the critical two-stage filtering logic:
-    1. User-selected fields: Only fields selected via checkboxes are included
-    2. Role-based permissions: Only fields permitted by PERMISSION_MATRIX are included
-    
-    A field is only displayed if it passes BOTH checks.
-    
-    Form Data:
-        selected_fields: List of field names selected by user via checkboxes
-    
-    Returns:
-        HTML fragment (patient tab) with filtered data to be appended to #patient-tab-content-area
+        HTML fragment (patient tab) with data filtered by user role
     """
     global patients_db
     
@@ -319,31 +282,15 @@ def create_patient_tab(patient_id):
     patient = patients_db[patient_id]
     current_role = session.get('user_role', 'Physician')
     
-    # Get selected fields from form submission
-    selected_fields_str = request.form.get('selected_fields', '[]')
-    # Parse JSON array from HTMX request
-    import json
-    try:
-        selected_fields = json.loads(selected_fields_str)
-    except (json.JSONDecodeError, TypeError):
-        selected_fields = []
-    
     # Get role-based permitted fields
     permitted_fields = PERMISSION_MATRIX.get(current_role, [])
     
-    # Helper function: Apply two-stage filtering logic
-    def get_filtered_value(field_name):
-        """Returns field value if it passes both selection and permission checks, else empty string."""
-        # Check 1: User must have selected this field
-        if field_name not in selected_fields:
-            return ""
-        
-        # Check 2: Field must be permitted for this role
-        if field_name not in permitted_fields:
-            return ""
-        
-        # Both checks passed - return the actual value
-        return patient.get(field_name, "")
+    # Helper function: Return field value if permitted, else empty string
+    def get_field_value(field_name):
+        """Returns field value if role is permitted to access it, else empty string."""
+        if field_name in permitted_fields:
+            return patient.get(field_name, "")
+        return ""
     
     # Map role names to patient tab template names
     role_to_template = {
@@ -356,12 +303,11 @@ def create_patient_tab(patient_id):
     template_role = role_to_template.get(current_role, 'physician').lower()
     template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
     
-    # Render template with filtered data and helper function
+    # Render template with filtered data
     return render_template(
         template_name,
         patient=patient,
-        filtered_value=get_filtered_value,
-        selected_fields=selected_fields,
+        get_field_value=get_field_value,
         permitted_fields=permitted_fields
     )
 
