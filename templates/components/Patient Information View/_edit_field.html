@@ -10,6 +10,9 @@ Components:
 *Data edit field: Nature changes based on the data fields nature (checkbox for restricted visitation, else textbox)
 *Submit button: Submits the new data and changes the data field's data
 *Cancel button: Get the previous display data and place it back into the patient data form
+
+Notes: 
+*Cancel button doesn't work properly with HTMX; needs to re-fetch the original display state
 -->
 <div id="patient-{{ patient_id }}-{{ field_name }}-display" class="bg-blue-50 p-4 rounded-lg shadow-sm">
 

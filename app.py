@@ -39,13 +39,14 @@ PERMISSION_MATRIX = {
 }
 # --- End RBAC Configuration ---
 
-
+#Testing different roles involves changing session['user_role']
 @app.route('/')
 def index():
     if 'user_role' not in session:
         session['user_role'] = 'Office Staff' # Set default role on first load
     return render_template('index.html', roles=ROLES, current_role=session['user_role'])
 
+#After changing role, press logout to actually change the role in session
 @app.route('/logout')
 def logout():
     session.pop('user_role', None) # Clear role on logout
@@ -63,6 +64,7 @@ def request_patient_records():
     """Returns the patient search interface."""
     return render_template('components/Patient Information Management/Patient Search/_patient_search.html')
 
+#Currently depreciated, as there is no filter options in the current patient search
 @app.route('/filter_options', methods=['GET'])
 def filter_options():
     """Returns the filter options dropdown."""
@@ -315,6 +317,7 @@ def create_patient_tab(patient_id):
         permitted_fields=permitted_fields
     )
 
+#Depreciated in favor of /download_patient_pdf/<int:patient_id>
 # Add routes for print PDF and export CSV (placeholder for now)
 @app.route('/print_pdf/<int:patient_id>')
 def print_pdf(patient_id):
@@ -466,7 +469,7 @@ def export_patient_csv(patient_id):
         download_name=filename
     )
 
-
+#Previously a system to swithch roles during testing for RBAC, removed early in development
 # --- RBAC Role Switching Endpoint ---
 
 
