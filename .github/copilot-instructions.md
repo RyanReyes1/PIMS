@@ -1,61 +1,80 @@
 # PIMS (Patient Information Management System) - AI Agent Instructions
 
-## Project Overview
-PIMS is a Flask-based hospital management system with a focus on patient information management and role-based access control (RBAC). The system uses HTMX for dynamic UI updates and Tailwind CSS for styling.
+## Quick Start
+Run `.\run.ps1` from project root (Windows PowerShell). This script:
+1. Creates/activates Python venv and installs Flask dependencies
+2. Installs Node.js dependencies and starts Tailwind CSS watcher in background
+3. Launches Flask dev server (http://localhost:5000)
 
-## Architecture and Components
+Use flags: `.\run.ps1 -NoPython` or `.\run.ps1 -NoTailwind` to skip steps.
 
-### Backend (Python/Flask)
-- Main application: `app.py` - Contains route handlers and RBAC configuration
-- Configuration: `config.py` - App configuration and environment variables
-- Current state: Uses in-memory storage (dictionary) for patient data, marked for future database integration
+## Architecture Overview
 
-### Frontend
-- Template Structure:
-  - `templates/base.html` - Base template with common scripts and styles
-  - `templates/components/` - Modular UI components
-  - HTMX for dynamic content updates without full page reloads
-  - Tailwind CSS for styling (`static/css/`)
+**PIMS** is a Flask-based hospital patient management system with field-level role-based access control (RBAC). The design separates concerns into:
 
-## Key Patterns and Conventions
+- **Backend**: Flask routes in `app.py` handle RBAC logic, patient CRUD, and HTMX endpoints
+- **Frontend**: Jinja2 templates using HTMX for dynamic partial updates + Tailwind CSS styling
+- **Storage**: In-memory patient dictionary (planned DB migration)
 
-### Role-Based Access Control (RBAC)
-- Roles defined in `app.py`: Physician, Medical Personnel, Office Staff, Volunteer
-- Field-level permissions managed through `PERMISSION_MATRIX`
-- Access checks via `can_access_field()` function, available in templates
+### RBAC Model
+The system enforces permissions at two layers:
+
+1. **Backend layer** (`app.py`):
+   - `PERMISSION_MATRIX` dict maps role → list of accessible fields
+   - Routes like `/open_patient_tab` check permissions before rendering templates
+   - Example: Office Staff can only see `identity`, `insurance`, `billing`
+
+2. **Template layer**:
+   - Role-specific templates in `templates/components/Patient Information View/Role Defined Templates/`
+   - Example: `_patient_tab_physician.html` vs `_patient_tab_volunteer.html` render different field subsets
+   - Session stores current role: `session['user_role']`
+
+## Key Code Patterns
+
+### Adding Patient Fields
+1. Add field to dummy patient in `app.py` (line ~18)
+2. Update `PERMISSION_MATRIX` with role access rules
+3. Update role-specific templates (physician, medical personnel, office worker, volunteer)
+4. Field edit/update handled by `/edit_patient_section` and `/update_patient_section` routes
+
+### HTMX Integration
+Routes return HTML fragments, not JSON. HTMX attributes swap responses into DOM:
+- `hx-get="/endpoint"` — fetches and loads content
+- `hx-post="/endpoint"` — form submission (e.g., search, patient registration)
+- `hx-swap-oob="beforeend:#container"` — out-of-band swap for inserting new patient tabs
+- All tabs swap into `#patient-tab-content-area`; headers swap into `#patient-tab-headers`
 
 ### Component Structure
-- Components are prefixed with underscore (e.g., `_patient_tab.html`)
-- Each component file includes documentation header with parent/child relationships
-- HTMX attributes used for dynamic loading and updates
+Files use `_` prefix and are organized by feature:
+```
+templates/components/
+├── Patient Information Management/
+│   ├── Patient Search/
+│   │   ├── _patient_search.html
+│   │   └── _search_results.html
+│   ├── _patient_register.html
+│   └── _emergency_access.html
+└── Patient Information View/
+    └── Role Defined Templates/
+        ├── _patient_tab_physician.html
+        ├── _patient_tab_medicalpersonnel.html
+        ├── _patient_tab_officeworker.html
+        └── _patient_tab_volunteer.html
+```
 
-### Frontend Interactions
-- HTMX event handlers in `base.html` for smooth UI updates
-- Component-specific JavaScript kept minimal, preferring HTMX where possible
-- Dynamic content managed through dedicated endpoints (e.g., `/clear_dynamic_content`)
+Each component header documents parent/child relationships and HTMX behavior.
 
-## Development Workflow
+### Search Workflow
+`_patient_search.html` → user submits → `/submit_patient_search` → returns `_search_results.html` with matching patients → user clicks patient → `/open_patient_tab/{id}` renders role-filtered tab.
 
-### Setup
-1. Install dependencies: `pip install -r requirements.txt`
-2. Run development server: `flask run`
+## Tailwind CSS Setup
+- Source: `static/css/input.css` (where custom directives go)
+- Output: `static/css/style.css` (auto-compiled, do NOT edit directly)
+- Watcher: `run.ps1` starts `npx tailwindcss --watch` in background
+- Config: `tailwind.config.js` includes all template paths for class scanning
 
-### Making Changes
-- Backend changes: Update route handlers in `app.py`
-- Frontend components: Add/modify files in `templates/components/`
-- Styles: Modify `static/css/input.css` for Tailwind customizations
-
-## Key Integration Points
-- HTMX and server endpoints (see routes in `app.py`)
-- Role-based permission checks between backend and frontend
-- Future database integration points marked in `app.py` and `config.py`
-
-## Common Tasks
-- Adding new patient fields: Update `PERMISSION_MATRIX` and relevant templates
-- Creating new components: Follow naming convention and document parent/child relationships
-- Implementing new features: Consider RBAC implications and update permissions accordingly
-
-## Future Development Notes
-- Database integration planned (see comments in `config.py`)
-- Enhanced security measures needed for production
-- Additional patient management features marked for implementation
+## Notes
+- Session-based user role switching (no auth system currently)
+- Patient ID counter managed in memory; will need adjustment when using DB
+- Print PDF and export CSV routes are placeholders
+- Filter dropdown close behavior in `base.html` noted as potentially incomplete

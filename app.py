@@ -1,6 +1,10 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file
 from markupsafe import Markup #if using an older version of Flask, use above line for Markup
 from config import Config
+from fpdf import FPDF
+import csv
+import io
+import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -317,10 +321,150 @@ def print_pdf(patient_id):
     # In a real app, generate and return a PDF
     return f"<div class='p-4 text-indigo-700 bg-indigo-100 rounded'>Generating PDF for Patient ID: {patient_id}...</div>"
 
-@app.route('/export_csv/<int:patient_id>')
-def export_csv(patient_id):
-    # In a real app, generate and return a CSV
-    return f"<div class='p-4 text-indigo-700 bg-indigo-100 rounded'>Exporting CSV for Patient ID: {patient_id}...</div>"
+@app.route('/download_patient_pdf/<int:patient_id>')
+def download_patient_pdf(patient_id):
+    """Generate and download a PDF of patient data with RBAC enforcement.
+    
+    This route generates a PDF file containing only the fields that the current
+    user's role is permitted to access based on the PERMISSION_MATRIX.
+    
+    Args:
+        patient_id: The ID of the patient to export
+    
+    Returns:
+        PDF file download with filename format: {firstname}{lastname}_pdf.pdf
+    """
+    # Verify patient exists
+    patient = patients_db.get(patient_id)
+    if not patient:
+        return "<div class='text-red-500 p-4'>Patient not found.</div>", 404
+    
+    # Get current user's role and permitted fields
+    current_role = session.get('user_role', 'Physician')
+    permitted_fields = PERMISSION_MATRIX.get(current_role, [])
+    
+    # Create filtered patient data dictionary with only permitted fields
+    filtered_patient_data = {}
+    for field in permitted_fields:
+        if field in patient:
+            filtered_patient_data[field] = patient.get(field, '')
+    
+    # Initialize PDF object with explicit margins and configure layout
+    pdf = FPDF()
+    pdf.set_margins(10, 10, 10)  # Explicitly set margins (left, top, right)
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    
+    # Add patient name as title
+    patient_name = patient.get('name', 'Patient Record')
+    pdf.cell(0, 10, f"Patient: {patient_name}", new_x="LMARGIN", new_y="NEXT", align="C")
+    pdf.set_font("Arial", "", 11)
+    pdf.ln(5)  # Add some spacing
+    
+    # Add field data to PDF with explicit positioning and width
+    # A4 page width is 210mm, with 10mm margins on each side = 190mm usable width
+    usable_width = 190
+    line_height = 8
+    
+    for field_name, field_value in filtered_patient_data.items():
+        # Format field name: replace underscores with spaces and title case
+        formatted_label = field_name.replace('_', ' ').title()
+        
+        # Convert boolean values to readable strings
+        if isinstance(field_value, bool):
+            field_value = "Yes" if field_value else "No"
+        
+        # Add field to PDF with proper positioning
+        # Move to left margin at beginning of each field
+        pdf.set_x(10)  # Set X position to left margin
+        pdf_text = f"{formatted_label}: {field_value}"
+        # Use multi_cell with proper width and move to next line after
+        pdf.multi_cell(usable_width, line_height, pdf_text, new_x="LMARGIN", new_y="NEXT")
+    
+    # Construct filename: extract first and last names, convert to lowercase, remove spaces
+    patient_name_parts = patient.get('name', 'patient').split()
+    firstname = patient_name_parts[0].lower() if patient_name_parts else 'patient'
+    lastname = patient_name_parts[-1].lower() if len(patient_name_parts) > 1 else ''
+    
+    # Remove spaces from names
+    firstname = firstname.replace(' ', '')
+    lastname = lastname.replace(' ', '')
+    
+    # Build filename: {firstname}{lastname}_pdf.pdf
+    filename = f"{firstname}{lastname}_pdf.pdf"
+    
+    # Generate PDF to bytes
+    pdf_bytes = io.BytesIO(pdf.output())
+    pdf_bytes.seek(0)
+    
+    return send_file(
+        pdf_bytes,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.route('/export_patient_csv/<int:patient_id>')
+def export_patient_csv(patient_id):
+    """Export patient data as CSV with RBAC enforcement.
+    
+    This route generates a CSV file containing only the fields that the current
+    user's role is permitted to access based on the PERMISSION_MATRIX.
+    
+    Args:
+        patient_id: The ID of the patient to export
+    
+    Returns:
+        CSV file download with filename format: {firstname}{lastname}_csv.csv
+    """
+    # Verify patient exists
+    patient = patients_db.get(patient_id)
+    if not patient:
+        return "<div class='text-red-500 p-4'>Patient not found.</div>", 404
+    
+    # Get current user's role and permitted fields
+    current_role = session.get('user_role', 'Physician')
+    permitted_fields = PERMISSION_MATRIX.get(current_role, [])
+    
+    # Create filtered patient data dictionary with only permitted fields
+    filtered_patient_data = {}
+    for field in permitted_fields:
+        filtered_patient_data[field] = patient.get(field, '')
+    
+    # Generate CSV in memory using io.StringIO
+    csv_buffer = io.StringIO()
+    fieldnames = list(filtered_patient_data.keys())
+    
+    writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerow(filtered_patient_data)
+    
+    # Prepare CSV content for download
+    csv_buffer.seek(0)
+    csv_content = csv_buffer.getvalue()
+    
+    # Construct filename: extract first and last names, convert to lowercase, remove spaces
+    patient_name = patient.get('name', 'patient').split()
+    firstname = patient_name[0].lower() if patient_name else 'patient'
+    lastname = patient_name[-1].lower() if len(patient_name) > 1 else ''
+    
+    # Remove spaces from names
+    firstname = firstname.replace(' ', '')
+    lastname = lastname.replace(' ', '')
+    
+    # Build filename: {firstname}{lastname}_csv.csv
+    filename = f"{firstname}{lastname}_csv.csv"
+    
+    # Convert string content to bytes for send_file
+    csv_bytes = io.BytesIO(csv_content.encode('utf-8'))
+    csv_bytes.seek(0)
+    
+    return send_file(
+        csv_bytes,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 # --- RBAC Role Switching Endpoint ---
