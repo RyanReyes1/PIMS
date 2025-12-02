@@ -5,6 +5,7 @@ from fpdf import FPDF
 import csv
 import io
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -39,17 +40,27 @@ PERMISSION_MATRIX = {
 }
 # --- End RBAC Configuration ---
 
+# Logging utility for emergency access
+def log_emergency_access(user_role, patient_id, patient_name, reason):
+    """Log emergency access requests to console with timestamp."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_message = f"[EMERGENCY ACCESS LOG] {timestamp} | User Role: {user_role} | Patient ID: {patient_id} | Patient Name: {patient_name} | Reason: {reason}"
+    print(log_message)
+
 #Testing different roles involves changing session['user_role']
 @app.route('/')
 def index():
     if 'user_role' not in session:
         session['user_role'] = 'Office Staff' # Set default role on first load
+    if 'emergency_access_ids' not in session:
+        session['emergency_access_ids'] = [] # Initialize emergency access list
     return render_template('index.html', roles=ROLES, current_role=session['user_role'])
 
 #After changing role, press logout to actually change the role in session
 @app.route('/logout')
 def logout():
     session.pop('user_role', None) # Clear role on logout
+    session.pop('emergency_access_ids', None) # Clear emergency access on logout
     return redirect(url_for('index'))
 
 @app.route('/clear_dynamic_content', methods=['GET'])
@@ -197,10 +208,10 @@ def register_patient():
     return response_html
 
 
-@app.route('/request_emergency_access', methods=['GET'])
-def request_emergency_access_form():
-    """Returns the emergency access form."""
-    return render_template('components/Patient Information Management/_emergency_access.html')
+@app.route('/request_emergency_access/<int:patient_id>', methods=['GET'])
+def request_emergency_access_form(patient_id):
+    """Returns the emergency access form for a specific patient."""
+    return render_template('components/Patient Information Management/_emergency_access.html', patient_id=patient_id)
 
 @app.route('/submit_emergency_access', methods=['POST'])
 def submit_emergency_access():
@@ -208,26 +219,102 @@ def submit_emergency_access():
     reason = request.form['reason']
     return f"<div class='p-4 text-orange-700 bg-orange-100 rounded'>Emergency access request submitted for reason: {reason}</div>"
 
+@app.route('/grant_emergency_access/<int:patient_id>', methods=['POST'])
+def grant_emergency_access(patient_id):
+    """Grant temporary emergency access to a patient's full data for the current session.
+    
+    This route elevates the user's privileges for a specific patient, allowing them to view
+    all patient data regardless of their role. The elevation is session-based and temporary.
+    
+    Args:
+        patient_id: The ID of the patient to grant emergency access for
+    
+    Form Data:
+        reason: The reason for requesting emergency access (required)
+    
+    Returns:
+        HTML fragment with physician-level patient tab (OOB swap) and success message
+    """
+    global patients_db
+    
+    # Validate patient exists
+    if patient_id not in patients_db:
+        return "<div class='text-red-500 p-4'>Patient not found.</div>", 404
+    
+    patient = patients_db[patient_id]
+    reason = request.form.get('reason', 'No reason provided').strip()
+    current_role = session.get('user_role', 'Physician')
+    
+    # Log the emergency access request
+    log_emergency_access(current_role, patient_id, patient.get('name', 'Unknown'), reason)
+    
+    # Update session to grant emergency access for this patient
+    if 'emergency_access_ids' not in session:
+        session['emergency_access_ids'] = []
+    
+    if patient_id not in session['emergency_access_ids']:
+        session['emergency_access_ids'].append(patient_id)
+    
+    session.modified = True  # Mark session as modified to persist changes
+    
+    # Render the physician-level template (full access) for this patient
+    tab_content_html = render_template(
+        'components/Patient Information View/Role Defined Templates/_patient_tab_physician.html',
+        patient=patient
+    )
+    
+    # Add OOB swap attribute to the tab div for out-of-band replacement
+    # This replaces the entire patient tab div with the physician view
+    tab_content_with_oob = tab_content_html.replace(
+        f'id="patient-tab-{patient_id}"',
+        f'id="patient-tab-{patient_id}" hx-swap-oob="outerHTML"'
+    )
+    
+    # Return success message (goes to #dynamic-content) + OOB swapped tab (replaces current tab)
+    response_html = Markup(f"""
+        <div class='p-4 text-green-700 bg-green-100 rounded mb-4'>
+            <strong>Emergency Access Granted</strong><br>
+            You now have full access to this patient's data for this session.
+        </div>
+        
+        {tab_content_with_oob}
+    """)
+    
+    return response_html
+
 
 # HTMX Endpoints for Patient Tabs
 
 @app.route('/open_patient_tab/<int:patient_id>', methods=['GET'])
 def open_patient_tab(patient_id):
-    """Opens a new tab for a patient based on the user's role."""
+    """Opens a new tab for a patient based on the user's role.
+    
+    If the patient ID is in the session's emergency_access_ids list, renders the
+    physician-level template regardless of actual user role. Otherwise, renders
+    the role-appropriate template.
+    """
     patient = patients_db.get(patient_id)
     if not patient:
         return "<div class='text-red-500 p-4'>Patient not found.</div>"
 
     current_role = session.get('user_role', 'Physician')
-    # Map role names to template file names
-    role_to_template = {
-        'Physician': 'physician',
-        'Medical Personnel': 'medicalpersonnel',
-        'Office Staff': 'officeworker',
-        'Volunteer': 'volunteer'
-    }
-    template_role = role_to_template.get(current_role, 'physician').lower()
-    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
+    emergency_access_ids = session.get('emergency_access_ids', [])
+    
+    # Check if emergency access has been granted for this patient
+    if patient_id in emergency_access_ids:
+        # Grant physician-level access
+        template_name = 'components/Patient Information View/Role Defined Templates/_patient_tab_physician.html'
+    else:
+        # Use role-appropriate template
+        role_to_template = {
+            'Physician': 'physician',
+            'Medical Personnel': 'medicalpersonnel',
+            'Office Staff': 'officeworker',
+            'Volunteer': 'volunteer'
+        }
+        template_role = role_to_template.get(current_role, 'physician').lower()
+        template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
+    
     return render_template(template_name, patient=patient)
 
 @app.route('/edit_patient_section/<int:patient_id>/<string:field_name>', methods=['GET'])
@@ -273,11 +360,14 @@ def create_patient_tab(patient_id):
     This endpoint implements role-based RBAC by automatically filtering patient
     data based on the current user's permissions (PERMISSION_MATRIX).
     
+    If the patient ID is in the session's emergency_access_ids list, renders the
+    physician-level template (full access) regardless of actual user role.
+    
     Args:
         patient_id: The ID of the patient to display
     
     Returns:
-        HTML fragment (patient tab) with data filtered by user role
+        HTML fragment (patient tab) with data filtered by user role or emergency access status
     """
     global patients_db
     
@@ -287,35 +377,45 @@ def create_patient_tab(patient_id):
     
     patient = patients_db[patient_id]
     current_role = session.get('user_role', 'Physician')
+    emergency_access_ids = session.get('emergency_access_ids', [])
     
-    # Get role-based permitted fields
-    permitted_fields = PERMISSION_MATRIX.get(current_role, [])
+    # Check if emergency access has been granted for this patient
+    if patient_id in emergency_access_ids:
+        # Grant physician-level access
+        template_name = 'components/Patient Information View/Role Defined Templates/_patient_tab_physician.html'
+    else:
+        # Use role-appropriate template with permission filtering
+        # Get role-based permitted fields
+        permitted_fields = PERMISSION_MATRIX.get(current_role, [])
+        
+        # Helper function: Return field value if permitted, else empty string
+        def get_field_value(field_name):
+            """Returns field value if role is permitted to access it, else empty string."""
+            if field_name in permitted_fields:
+                return patient.get(field_name, "")
+            return ""
+        
+        # Map role names to patient tab template names
+        role_to_template = {
+            'Physician': 'physician',
+            'Medical Personnel': 'medicalpersonnel',
+            'Office Staff': 'officeworker',
+            'Volunteer': 'volunteer'
+        }
+        
+        template_role = role_to_template.get(current_role, 'physician').lower()
+        template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
+        
+        # Render template with filtered data
+        return render_template(
+            template_name,
+            patient=patient,
+            get_field_value=get_field_value,
+            permitted_fields=permitted_fields
+        )
     
-    # Helper function: Return field value if permitted, else empty string
-    def get_field_value(field_name):
-        """Returns field value if role is permitted to access it, else empty string."""
-        if field_name in permitted_fields:
-            return patient.get(field_name, "")
-        return ""
-    
-    # Map role names to patient tab template names
-    role_to_template = {
-        'Physician': 'physician',
-        'Medical Personnel': 'medicalpersonnel',
-        'Office Staff': 'officeworker',
-        'Volunteer': 'volunteer'
-    }
-    
-    template_role = role_to_template.get(current_role, 'physician').lower()
-    template_name = f'components/Patient Information View/Role Defined Templates/_patient_tab_{template_role}.html'
-    
-    # Render template with filtered data
-    return render_template(
-        template_name,
-        patient=patient,
-        get_field_value=get_field_value,
-        permitted_fields=permitted_fields
-    )
+    # For emergency access, render without filtering
+    return render_template(template_name, patient=patient)
 
 #Depreciated in favor of /download_patient_pdf/<int:patient_id>
 # Add routes for print PDF and export CSV (placeholder for now)

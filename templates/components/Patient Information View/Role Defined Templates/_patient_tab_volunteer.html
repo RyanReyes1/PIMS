@@ -6,6 +6,8 @@ Role: Volunteer - Limited access to basic patient information and visitation det
 Patient tab template for Volunteer role
 
 Notes:
+Emergency Access Button: Allows Volunteers to request full physician-level access for a specific patient
+by providing a reason. When granted, the view automatically upgrades to show all patient fields.
 -->
 <div id="patient-tab-{{ patient.id }}" class="patient-tab-content p-6 space-y-6 hidden border border-black rounded-lg"
      role="tabpanel" aria-labelledby="tab-header-{{ patient.id }}"
@@ -30,7 +32,7 @@ Notes:
             </a>
             <button
                 class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition duration-200 ease-in-out"
-                hx-get="{{ url_for('request_emergency_access_form') }}"
+                hx-get="{{ url_for('request_emergency_access_form', patient_id=patient.id) }}"
                 hx-target="#dynamic-content"
                 hx-swap="innerHTML"
                 aria-label="Request emergency access for {{ patient.name }}">
