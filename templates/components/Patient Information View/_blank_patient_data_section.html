@@ -1,0 +1,35 @@
+<!--
+Parent: Role-specific patient tab templates (_patient_tab_[role].html)
+Children: _patient_data_section.html (loaded on demand)
+
+Blank placeholder component for lazy-loading patient data fields.
+Initially renders only the field label and a "Request Data" button.
+Does NOT include actual patient data in the HTML response for privacy/security.
+
+When user clicks "Request Data", HTMX triggers a GET request to /fetch_patient_field/<patient_id>/<field_name>.
+The backend verifies RBAC permissions, fetches the data, and returns the populated _patient_data_section.html.
+HTMX swaps the entire blank component (outerHTML) with the populated component.
+
+Parameters:
+- label: Human-readable field label (e.g., "Insurance")
+- field_name: Database field name (e.g., "insurance")
+- patient_id: Patient ID for the HTMX request URL
+
+Notes:
+- Security: HTML contains no actual patient data, only the label and button
+- The populated data is only transmitted in the second request (hx-get)
+- Uses outerHTML swap to replace the entire placeholder with the loaded component
+-->
+<div id="patient-{{ patient_id }}-{{ field_name }}-display" class="bg-gray-100 p-4 rounded-lg shadow-sm flex justify-between items-center">
+    <div>
+        <h4 class="text-sm font-medium text-gray-500">{{ label }}:</h4>
+        <span class="text-lg font-semibold text-gray-400">---</span>
+    </div>
+    <button class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md transition duration-200"
+            hx-get="{{ url_for('fetch_patient_field', patient_id=patient_id, field_name=field_name) }}"
+            hx-target="#patient-{{ patient_id }}-{{ field_name }}-display"
+            hx-swap="outerHTML"
+            aria-label="Request data for {{ label }}">
+        Request Data
+    </button>
+</div>

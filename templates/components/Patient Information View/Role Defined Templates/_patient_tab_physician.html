@@ -35,39 +35,32 @@ Notes:
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% set field_name = 'name' %}
         {% set label = 'Name' %}
-        {% set value = patient.name %}
         {% set patient_id = patient.id %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'location' %}
         {% set label = 'Location' %}
-        {% set value = patient.location %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'approved_visitors' %}
         {% set label = 'Approved Visitors' %}
-        {% set value = patient.approved_visitors %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'identity' %}
         {% set label = 'Identity' %}
-        {% set value = patient.identity %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'insurance' %}
         {% set label = 'Insurance' %}
-        {% set value = patient.insurance %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'billing' %}
         {% set label = 'Billing' %}
-        {% set value = patient.billing %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'restricted_visitation' %}
         {% set label = 'Restricted Visitation' %}
-        {% set value = patient.restricted_visitation %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
     {# removed deprecated field #}
     </div>

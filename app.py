@@ -317,6 +317,68 @@ def open_patient_tab(patient_id):
     
     return render_template(template_name, patient=patient)
 
+@app.route('/fetch_patient_field/<int:patient_id>/<string:field_name>', methods=['GET'])
+def fetch_patient_field(patient_id, field_name):
+    """Fetch and render a specific patient field with lazy-loading and RBAC enforcement.
+    
+    This endpoint implements the lazy-loading pattern for patient data fields. It:
+    1. Validates the patient exists
+    2. Checks RBAC permissions using PERMISSION_MATRIX
+    3. Fetches the field value from the database
+    4. Returns the populated _patient_data_section.html template
+    
+    The initial page load contains NO patient data (blank placeholders only).
+    Data is only transmitted in the second request when user clicks "Request Data".
+    
+    Args:
+        patient_id: The ID of the patient
+        field_name: The name of the field to fetch (e.g., 'insurance', 'identity')
+    
+    Returns:
+        HTML fragment: _patient_data_section.html populated with data (if authorized)
+        or error HTML if unauthorized or field not found
+    
+    Security:
+        - Returns HTTP 403 Forbidden if user's role is not permitted to view this field
+        - Checks field_name against PERMISSION_MATRIX before accessing patient data
+    """
+    # Verify patient exists
+    patient = patients_db.get(patient_id)
+    if not patient:
+        return "<div class='text-red-500 p-4'>Patient not found.</div>", 404
+    
+    # Get current user's role
+    current_role = session.get('user_role', 'Physician')
+    emergency_access_ids = session.get('emergency_access_ids', [])
+    
+    # Check RBAC permissions: if patient has emergency access or field is permitted
+    permitted_fields = PERMISSION_MATRIX.get(current_role, [])
+    
+    # If emergency access is granted for this patient, allow all fields (physician-level)
+    if patient_id in emergency_access_ids:
+        permitted_fields = PERMISSION_MATRIX.get('Physician', [])
+    
+    # Check if field is in the role's permitted fields
+    if field_name not in permitted_fields:
+        return "<div class='text-red-500 p-4'>Access denied to this field.</div>", 403
+    
+    # Verify field exists in patient record
+    if field_name not in patient:
+        return "<div class='text-red-500 p-4'>Field not found.</div>", 404
+    
+    # Get field value and label
+    value = patient[field_name]
+    label = field_name.replace('_', ' ').title()
+    
+    # Render and return the populated _patient_data_section.html
+    return render_template(
+        'components/Patient Information View/_patient_data_section.html',
+        patient_id=patient_id,
+        field_name=field_name,
+        label=label,
+        value=value
+    )
+
 @app.route('/edit_patient_section/<int:patient_id>/<string:field_name>', methods=['GET'])
 def edit_patient_section(patient_id, field_name):
     """Renders an editable input for a specific patient field."""

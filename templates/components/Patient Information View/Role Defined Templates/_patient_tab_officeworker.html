@@ -45,18 +45,15 @@ by providing a reason. When granted, the view automatically upgrades to show all
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% set field_name = 'identity' %}
         {% set label = 'Identity' %}
-        {% set value = patient.identity %}
         {% set patient_id = patient.id %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'insurance' %}
         {% set label = 'Insurance' %}
-        {% set value = patient.insurance %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
 
         {% set field_name = 'billing' %}
         {% set label = 'Billing' %}
-        {% set value = patient.billing %}
-        {% include 'components/Patient Information View/_patient_data_section.html' %}
+        {% include 'components/Patient Information View/_blank_patient_data_section.html' %}
     </div>
 </div>

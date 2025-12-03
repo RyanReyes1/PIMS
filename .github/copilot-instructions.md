@@ -14,7 +14,7 @@ Use flags: `.\run.ps1 -NoPython` or `.\run.ps1 -NoTailwind` to skip steps. Press
 
 ### Critical Data Structures
 
-**PERMISSION_MATRIX** (line ~37 in `app.py`): Maps role → list of accessible fields
+**PERMISSION_MATRIX** (`app.py` line ~37): Maps role → list of accessible fields. Add/modify here when changing field access rules.
 ```python
 PERMISSION_MATRIX = {
     'Physician': ['name', 'location', 'approved_visitors', 'identity', 'insurance', 'billing', 'restricted_visitation'],
@@ -24,9 +24,11 @@ PERMISSION_MATRIX = {
 }
 ```
 
-**patient_db** (line ~16): In-memory dictionary. Key: `patient_id` (int), Value: patient dict with fields matching `PERMISSION_MATRIX` keys.
+**patients_db** (`app.py` line ~16): In-memory dict. Key: `patient_id` (int), Value: patient dict with fields matching `PERMISSION_MATRIX` keys.
 
-**Session Role** (`session['user_role']`): Tracks current user role; defaults to 'Office Staff' on first load (line ~50).
+**session['user_role']**: Current user role (no authentication). Defaults to 'Office Staff' on first load (line ~50). Only changes after `/logout` is called.
+
+**session['emergency_access_ids']**: List of patient IDs where current user has elevated physician-level access (used by `/grant_emergency_access`).
 
 ## Key Code Patterns
 
@@ -34,25 +36,27 @@ PERMISSION_MATRIX = {
 
 Routes return **HTML fragments, not JSON**. HTMX swaps fragments into the DOM:
 
-- **`hx-post` with form submission**: `/submit_patient_search` processes form data, returns `_search_results.html` fragment
-- **Out-of-band swaps** (`hx-swap-oob`): Used in `/register_patient` to insert new tab headers and content simultaneously
-  - Headers swap into `#patient-tab-headers` (beforeend)
-  - Content swaps into `#patient-tab-content-area` (beforeend)
-- **Tab activation JS**: `/register_patient` response includes inline `<script>` that hides other tabs, shows new one, scrolls into view
+- **Form submission** (`hx-post`): `/submit_patient_search` processes form data, returns filtered `_search_results.html`
+- **Out-of-band swaps** (`hx-swap-oob`): `/register_patient` returns simultaneous updates:
+  - `hx-swap-oob="beforeend:#patient-tab-headers"` - inserts new tab header
+  - `hx-swap-oob="beforeend:#patient-tab-content-area"` - inserts new tab content
+  - Response includes inline `<script>` to show new tab and hide others
+- **Tab activation**: `/open_patient_tab/<patient_id>` renders role-appropriate template; `base.html` scroll listener auto-scrolls new tabs into view
 
-Example: `_patient_register.html` submits to `/register_patient` which returns OOB swaps + success message + activation script.
+### RBAC Enforcement Pattern (Two-Layer)
 
-### RBAC Enforcement Pattern
-
-**Backend enforcement** (`/edit_patient_section`, `/update_patient_section`, PDF/CSV export):
+**Backend** (`/edit_patient_section`, `/update_patient_section`, `/download_patient_pdf`, `/export_patient_csv`):
 1. Get role: `current_role = session.get('user_role', 'Physician')`
-2. Check permission: `if field_name not in PERMISSION_MATRIX.get(current_role, []): return error`
-3. Render template with filtered data
+2. Check permission: `if field_name not in PERMISSION_MATRIX.get(current_role, []): return "Access denied"`
+3. Return HTML with only permitted fields
 
-**Frontend enforcement**:
+**Frontend**:
 - Role-specific templates in `templates/components/Patient Information View/Role Defined Templates/`
-- Examples: `_patient_tab_physician.html` includes all fields; `_patient_tab_officeworker.html` includes only billing/insurance/identity
-- Templates use conditional rendering and loop through field lists to match backend permissions
+  - `_patient_tab_physician.html` - all fields
+  - `_patient_tab_medicalpersonnel.html` - clinical + admin
+  - `_patient_tab_officeworker.html` - billing/identity only
+  - `_patient_tab_volunteer.html` - name/location/visitors
+- Each includes `_patient_data_section.html` component with field-specific labels and edit triggers
 
 ### Component Structure & Naming Conventions
 
@@ -61,55 +65,61 @@ Files use `_` prefix (Jinja2 component convention). Organized by feature:
 templates/components/
 ├── Patient Information Management/
 │   ├── Patient Search/
-│   │   ├── _patient_search.html
-│   │   └── _search_results.html
-│   ├── _patient_register.html
-│   └── _emergency_access.html
+│   │   ├── _patient_search.html (search form)
+│   │   └── _search_results.html (results list - includes _new_patient_tab_header)
+│   ├── _patient_register.html (registration form, submits to /register_patient)
+│   └── _emergency_access.html (emergency access form, submits to /grant_emergency_access)
 └── Patient Information View/
-    ├── _patient_data_section.html (editable field display)
+    ├── _patient_data_section.html (read/edit toggle for single field)
     ├── _edit_field.html (inline edit form)
-    ├── _new_patient_tab_header.html
+    ├── _new_patient_tab_header.html (tab button template)
     └── Role Defined Templates/
-        ├── _patient_tab_physician.html
-        ├── _patient_tab_medicalpersonnel.html
-        ├── _patient_tab_officeworker.html
-        └── _patient_tab_volunteer.html
-        └── _patient_tab.html (base template)
+        ├── _patient_tab_physician.html (all fields)
+        ├── _patient_tab_medicalpersonnel.html (medical + admin fields)
+        ├── _patient_tab_officeworker.html (billing/identity)
+        └── _patient_tab_volunteer.html (name/location/visitors)
 ```
 
-**Component headers** (HTML comments) document:
-- Parent/child relationships
-- HTMX behavior
-- Role-specific filtering
-- Known limitations
+Each component header (HTML comment) documents parent/children, HTMX behavior, role filtering, and limitations.
+
+### Emergency Access Feature
+
+Routes: `/request_emergency_access_form/<patient_id>` → `/grant_emergency_access/<patient_id>`
+
+- Adds `patient_id` to `session['emergency_access_ids']`
+- Logged to console via `log_emergency_access()` for audit trail
+- Grants physician-level template access regardless of actual role
+- Requires reason submission (form data in `/grant_emergency_access`)
+- Session-persisted (lost on logout)
 
 ### Adding Patient Fields (Workflow)
 
-1. **Backend** (`app.py`): Add field to `patients_db` dummy record (line ~18)
-2. **RBAC** (`app.py`): Update `PERMISSION_MATRIX` with role access rules
-3. **Templates**: Add field include in all four role-specific templates using `_patient_data_section.html` with proper labels
-4. **Field editing**: Routes `/edit_patient_section` and `/update_patient_section` already handle generic field updates; ensure type handling (e.g., booleans converted via `'field' in request.form`)
+1. **Backend** (`app.py`): Add to dummy record (line ~18) and `PERMISSION_MATRIX` with role access
+2. **Templates**: Add field to all four `_patient_tab_*.html` files using `_patient_data_section.html` component
+3. **Field editing**: Routes handle edits generically; for booleans, detect via `'field' in request.form` pattern
 
 ## Tailwind CSS Setup
 
-- **Source**: `static/css/input.css` (where custom directives go)
-- **Output**: `static/css/style.css` (auto-compiled; **do NOT edit directly**)
+- **Source**: `static/css/input.css` (edit here; where custom directives go)
+- **Output**: `static/css/style.css` (auto-compiled; **never edit directly**)
 - **Watcher**: `run.ps1` starts `npx tailwindcss --watch` in background
 - **Config**: `tailwind.config.js` scans `templates/**/*.html` and `static/**/*.js` for class names
 
 ## Known Limitations & TODOs
 
-- **Session-based roles**: No authentication; testing involves changing `session['user_role']` and logging out
-- **In-memory storage**: Patient ID counter (`patient_id_counter`) will need persistence layer when migrating to database
-- **PDF/CSV exports**: Implemented with RBAC filtering; filenames use `{firstname}{lastname}_ext` format (lowercase, no spaces)
-- **Filter dropdown**: Close-on-click behavior in `base.html` (line ~23) noted as potentially incomplete; currently depreciated in UI
-- **Deprecated routes**: `/filter_options`, `/print_pdf` (superseded by `/download_patient_pdf`)
+- **No authentication**: Session role is hardcoded; production needs proper auth layer
+- **In-memory storage**: Patient data + `patient_id_counter` lost on restart; requires DB migration
+- **PDF/CSV filenames**: Format is `{firstname}{lastname}_{ext}.{ext}` (lowercase, spaces removed)
+- **Filter dropdown**: Close-on-click in `base.html` incomplete; currently unused in UI
+- **Deprecated routes**: `/filter_options`, `/print_pdf` (replaced by `/download_patient_pdf`)
 
 ## Testing RBAC
 
-Change role and verify permissions:
-1. Run `.\run.ps1`
-2. Open DevTools console: `fetch('/logout').then(() => location.reload())`
-3. Log in as different role (dropdown in header)
-4. Verify visible fields match `PERMISSION_MATRIX`
-5. Test field edit attempts on restricted fields (should fail with "Access denied" message)
+To test different roles:
+1. Run `.\run.ps1` (starts Flask on http://localhost:5000)
+2. Open browser DevTools console and run: `fetch('/logout').then(() => location.reload())`
+3. Page reloads with default role (Office Staff)
+4. Edit `app.py` line ~50 to set different `session['user_role'] = 'Physician'` (or other role)
+5. Restart Flask and reload browser
+6. Verify visible fields match `PERMISSION_MATRIX` for that role
+7. Test field edits on restricted fields (returns "Access denied" message)
